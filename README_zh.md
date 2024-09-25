@@ -1,5 +1,5 @@
 <h1><picture>
-  <img alt="Goodnews" src="logo.png" height="34">
+  <img style="width: 240px" width="240" src="logo.svg" alt="goodnews">
 </picture></h1>
 
 [good.news](https://good.news) 是一个基于 **ActivityPub** 协议开发的自由、开源的社交媒体平台。通过 [good.news](https://good.news)，你可以自由地发布各种内容，包括文字、图片、链接和视频等。作为 **ActivityPub** 生态系统的一部分，[good.news](https://good.news) 支持与其他实现该协议的平台/服务器上的用户和内容互动。

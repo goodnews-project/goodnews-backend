@@ -1,5 +1,5 @@
 <h1><picture>
-  <img alt="Goodnews" src="logo.png" height="34">
+  <img style="width: 240px" width="240" src="logo.svg" alt="goodnews">
 </picture></h1>
 
 [good.news](https://good.news) is a free and open-source social media platform developed based on the **ActivityPub** protocol. With [good.news](https://good.news), you can freely publish various types of content, including text, images, links, and videos. As part of the **ActivityPub** ecosystem, [good.news](https://good.news) supports interaction with users and content from other platforms/servers that implement this protocol.
