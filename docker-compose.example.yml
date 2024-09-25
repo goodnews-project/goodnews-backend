@@ -1,0 +1,82 @@
+# services list.
+services:
+  # base image
+  goodnews:
+    # image: "hyperf/hyperf:8.3-alpine-vedge-swoole-slim-v5"
+    container_name: goodnews-backend
+    build:
+      context: "."
+      dockerfile: docker/hyperf/Dockerfile
+    depends_on:
+      - mysql
+      - redis
+      - nsq
+    # develop
+    # working_dir: /opt/www
+    # entrypoint: [ "php", "bin/hyperf.php", "server:watch" ]
+    volumes:
+      - ./storage/keys:/opt/www/storage/keys
+      - ./.env:/opt/www/.env
+      # - ./:/opt/www
+    environment:
+      APP_ENV: "${APP_ENV:-prod}"
+    ports:
+      - 9501:9501
+    restart: "always"
+    deploy:
+      replicas: 1
+    
+  
+  mysql:
+    image: "mysql:8.4"
+    environment:
+      TZ: "Asia/Shanghai"
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: "goodnews"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    restart: "always"
+  
+  redis:
+    image: "redis"
+    command:
+      - "redis-server"
+      - "--databases 256"
+    volumes:
+      - redis-data:/data
+    restart: "always"
+
+  nsqlookup:
+    image: nsqio/nsq:v1.3.0
+    hostname: nsqlookup
+    ports:
+      - "127.0.0.1:4160:4160"
+      - "127.0.0.1:4161:4161"
+    command: /nsqlookupd
+
+  nsq:
+    image: nsqio/nsq:v1.3.0
+    hostname: nsq
+    ports:
+      - "127.0.0.1:4150:4150"
+      - "127.0.0.1:4151:4151"
+    links:
+      - nsqlookup:nsqlookup
+    command: /nsqd --data-path=/data --broadcast-address nsq --lookupd-tcp-address=nsqlookup:4160
+    volumes:
+      - nsq-data:/data
+
+  nsqadmin:
+    image: nsqio/nsq:v1.3.0
+    hostname: nsqadmin
+    links:
+      - nsqlookup:nsqlookup
+    ports:
+      - "127.0.0.1:4171:4171"
+    command: /nsqadmin --lookupd-http-address=nsqlookup:4161
+volumes:
+  mysql-data:
+  redis-data:
+  nsq-data:
+  goodnews-keys:

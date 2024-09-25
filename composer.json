@@ -1,0 +1,123 @@
+{
+    "name": "hyperf/hyperf-skeleton",
+    "type": "project",
+    "keywords": [
+        "php",
+        "swoole",
+        "framework",
+        "hyperf",
+        "microservice",
+        "middleware"
+    ],
+    "description": "A coroutine framework that focuses on hyperspeed and flexible, specifically use for build microservices and middlewares.",
+    "license": "Apache-2.0",
+    "require": {
+        "php": ">=8.1",
+        "ext-gd": "*",
+        "96qbhy/hyperf-auth": "^3.1",
+        "dallgoot/yaml": "0.9.1.2",
+        "doctrine/dbal": "^3.7",
+        "erusev/parsedown": "^1.7",
+        "ezyang/htmlpurifier": "^4.17",
+        "firebase/php-jwt": "^6.8",
+        "fusonic/opengraph": "^2.2",
+        "goodnews/hyperf-cookie": "*",
+        "goodnews/hyperf-encryption": "*",
+        "goodnews/hyperf-hashing": "*",
+        "goodnews/hyperf-passport": "*",
+        "halaxa/json-machine": "^1.1",
+        "hyperf/async-queue": "^3.1",
+        "hyperf/cache": "^3.1",
+        "hyperf/command": "^3.1",
+        "hyperf/config": "^3.1",
+        "hyperf/crontab": "^3.1",
+        "hyperf/database": "^3.1",
+        "hyperf/database-pgsql": "^3.1",
+        "hyperf/db-connection": "^3.1",
+        "hyperf/elasticsearch": "^3.1",
+        "hyperf/filesystem": "^3.1",
+        "hyperf/framework": "^3.1",
+        "hyperf/guzzle": "^3.1",
+        "hyperf/http-server": "^3.1",
+        "hyperf/logger": "^3.1",
+        "hyperf/memory": "^3.1",
+        "hyperf/nsq": "^3.1",
+        "hyperf/paginator": "^3.1",
+        "hyperf/process": "^3.1",
+        "hyperf/redis": "^3.1",
+        "hyperf/resource": "^3.1",
+        "hyperf/session": "^3.1",
+        "hyperf/swagger": "^3.1",
+        "hyperf/task": "^3.1",
+        "hyperf/translation": "^3.1",
+        "hyperf/validation": "^3.1",
+        "hyperf/view-engine": "^3.1",
+        "hyperf/websocket-server": "^3.1",
+        "jaytaph/typearray": "^0.0.5",
+        "jcupitt/vips": "^2.3",
+        "kornrunner/blurhash": "^1.2",
+        "league/flysystem-aws-s3-v3": "^3.0",
+        "league/oauth2-server": "^8.5",
+        "mailgun/mailgun-php": "^3.6",
+        "nette/php-generator": "^4.1",
+        "nyholm/psr7": "^1.8",
+        "symfony/http-client": "^6.3",
+        "voku/anti-xss": "^4.1"
+    },
+    "require-dev": {
+        "friendsofhyperf/rector": "^0.2.0",
+        "friendsofphp/php-cs-fixer": "^3.0",
+        "hyperf/devtool": "^3.1",
+        "hyperf/testing": "^3.1",
+        "hyperf/watcher": "^3.1",
+        "mockery/mockery": "^1.0",
+        "phpstan/phpstan": "^1.0",
+        "swoole/ide-helper": "^5.0"
+    },
+    "suggest": {
+        "ext-openssl": "Required to use HTTPS.",
+        "ext-json": "Required to use JSON.",
+        "ext-pdo": "Required to use MySQL Client.",
+        "ext-pdo_mysql": "Required to use MySQL Client.",
+        "ext-redis": "Required to use Redis Client."
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        },
+        "files": [
+            "app/function.php",
+            "app/jsonld.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "HyperfTest\\": "./test/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true,
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    },
+    "extra": [],
+    "scripts": {
+        "post-root-package-install": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "post-autoload-dump": [
+            "rm -rf runtime/container"
+        ],
+        "test": "co-phpunit --prepend test/bootstrap.php -c phpunit.xml --colors=always",
+        "cs-fix": "php-cs-fixer fix $1",
+        "analyse": "phpstan analyse --memory-limit 300M -l 0 -c phpstan.neon ./app ./config",
+        "start": [
+            "Composer\\Config::disableProcessTimeout",
+            "php ./bin/hyperf.php start"
+        ]
+    }
+}
