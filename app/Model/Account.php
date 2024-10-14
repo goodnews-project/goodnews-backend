@@ -11,6 +11,7 @@ use App\Service\EsService;
 use App\Service\UrisService;
 use App\Util\Log;
 use Carbon\Carbon;
+use Hyperf\Database\Model\SoftDeletes;
 use Hyperf\DbConnection\Model\Model;
 use function Hyperf\Support\env;
 
@@ -58,7 +59,8 @@ use function Hyperf\Support\env;
  * @property int $is_long_term
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at 
- * @property-read \Hyperf\Database\Model\Collection|Follow[]|null $follows 
+ * @property \Carbon\Carbon $deleted_at
+ * @property-read \Hyperf\Database\Model\Collection|Follow[]|null $follows
  * @property-read \Hyperf\Database\Model\Collection|Follow[]|null $followers 
  * @property-read \Hyperf\Database\Model\Collection|Mute[]|null $mutes
  * @property-read \Hyperf\Database\Model\Collection|Block[]|null $blocks
@@ -72,7 +74,7 @@ use function Hyperf\Support\env;
  */
 class Account extends Model
 {
-    use Kit, Thing;
+    use Kit, Thing, SoftDeletes;
     /**
      * The table associated with the model.
      */
@@ -91,7 +93,7 @@ class Account extends Model
      */
     protected array $casts = ['id' => 'string', 'is_sensitive' => 'integer', 'followers_count' => 'integer', 'following_count' => 'integer',
         'actor_type' => 'integer', 'is_activate' => 'integer', 'fields' => 'array', 'fee' => 'string', 'subscriber_plan' => 'array',
-        'suspended_at' => 'datetime', 'created_at' => 'datetime:'.DATE_ATOM, 'updated_at' => 'datetime', 'last_webfingered_at' => 'datetime'];
+        'suspended_at' => 'datetime', 'created_at' => 'datetime:'.DATE_ATOM, 'updated_at' => 'datetime', 'deleted_at' => 'datetime', 'last_webfingered_at' => 'datetime'];
 
     protected array $attributes = [
         'is_sensitive'    => false,

@@ -47,7 +47,7 @@ class ActivitypubService
 
     public static function user($username = 'actor')
     {
-        $account = Account::where('username', $username)->whereNull('domain')->firstOrFail();
+        $account = Account::withTrashed()->where('username', $username)->whereNull('domain')->firstOrFail();
         $uris = UrisService::generateURIsForAccount($username);
         $actorTypeMap = Account::actorTypeMap;
         $reActorTypeMap = array_flip($actorTypeMap);
@@ -69,7 +69,7 @@ class ActivitypubService
             'manuallyApprovesFollowers' => (bool) $account->manually_approves_follower,
             'discoverable'              => true,
             'indexable'                 => true,
-            'memorial'                  => true,
+            'memorial'                  => false,
             'tag'                       => [],
             'attachment'                => [],
             'endpoints'                 => ['sharedInbox' => $uris['inboxURI']],
@@ -85,6 +85,12 @@ class ActivitypubService
 
         if ($account->fields) {
             $data['attachment'] = $account->fields;
+        }
+
+        if ($account->suspended_at) {
+            $data['discoverable'] = false;
+            $data['indexable'] = false;
+            $data['suspended'] = true;
         }
 
         $simpleGetImageMediaType = function ($url) {

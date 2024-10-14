@@ -686,7 +686,7 @@ class Helper {
         }
 
         try {
-            $account = Account::where('uri', $url)->firstOrFail();
+            $account = Account::withTrashed()->where('uri', $url)->firstOrFail();
         } catch (\Exception $e) {
             $account = self::accountUpdateOrCreate($url);
         }
@@ -710,10 +710,6 @@ class Helper {
     {
         $res = self::fetchAccountFromUrl($url);
         if(!$res || isset($res['id']) == false) {
-            return null;
-        }
-
-        if (!empty($res['suspended'])) {
             return null;
         }
 
@@ -761,11 +757,14 @@ class Helper {
                 'manually_approves_follower' => $res['manuallyApprovesFollowers'] ?? 0,
                 'last_webfingered_at' => Carbon::now()
             ];
+
+            if (!empty($res['suspended'])) {
+                $accountData['suspended_at'] = !empty($res['published']) ? Carbon::parse($res['published'])->toDatetimeString() : Carbon::now();
+            }
+
             $accountData['following_count'] = self::getFollowingCount($accountData['following_uri']);
             $accountData['followers_count'] = self::getFollowersCount($accountData['followers_uri']);
-//            if ($acct == 'whyyoutouzhele@x.good.news') {
-//                var_dump($accountData);
-//            }
+
             if (!empty($res['publicKey']['publicKeyPem'])) {
                 $accountData['public_key'] = $res['publicKey']['publicKeyPem'];
             }
@@ -800,7 +799,7 @@ class Helper {
                 $accountData['wallet_address'] = $res['extra']['wallet_address'];
             }
 
-            $account = Account::where('acct', $acct)->first();
+            $account = Account::withTrashed()->where('acct', $acct)->first();
             if ($account) {
                 $account = self::updateAccountData($account, $accountData);
             } else {
