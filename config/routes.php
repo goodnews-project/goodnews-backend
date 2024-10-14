@@ -95,7 +95,7 @@ Router::addGroup('/.well-known', function () {
     Router::get('/nodeinfo', [WellKnownController::class, 'nodeinfoRel']);
     Router::get('/nodeinfo/2.0', [WellKnownController::class, 'nodeinfo2']);
     Router::get('/host-meta', [WellKnownController::class, 'hostMeta']);
-},['middleware'=> [ActivitypubMiddleware::class]]);
+});
 
 Router::addServer('ws', function () {
     Router::get('/api/v1/streaming', 'App\Controller\WebSocketController');

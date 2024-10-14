@@ -27,7 +27,8 @@ class WellKnownController extends AbstractController
             return $this->response->raw('')->withStatus(400);
         }
 
-        return $this->knownService->webfinger($resource);
+        $data = $this->knownService->webfinger($resource);
+        return $this->response->json($data)->withHeader('Content-Type', 'application/jrd+json;charset=utf-8');
     }
 
     public function nodeinfoRel()
