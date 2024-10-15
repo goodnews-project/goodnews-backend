@@ -686,7 +686,7 @@ class Helper {
         }
 
         try {
-            $account = Account::withTrashed()->where('uri', $url)->firstOrFail();
+            $account = Account::where('uri', $url)->firstOrFail();
         } catch (\Exception $e) {
             $account = self::accountUpdateOrCreate($url);
         }
@@ -799,7 +799,7 @@ class Helper {
                 $accountData['wallet_address'] = $res['extra']['wallet_address'];
             }
 
-            $account = Account::withTrashed()->where('acct', $acct)->first();
+            $account = Account::where('acct', $acct)->first();
             if ($account) {
                 $account = self::updateAccountData($account, $accountData);
             } else {
