@@ -47,7 +47,10 @@ class ActivitypubService
 
     public static function user($username = 'actor')
     {
-        $account = Account::withTrashed()->where('username', $username)->whereNull('domain')->firstOrFail();
+        $account = Account::where('username', $username)->whereNull('domain')->first();
+        if (empty($account)) {
+            return ['error' => 'Not Found'];
+        }
         $uris = UrisService::generateURIsForAccount($username);
         $actorTypeMap = Account::actorTypeMap;
         $reActorTypeMap = array_flip($actorTypeMap);
