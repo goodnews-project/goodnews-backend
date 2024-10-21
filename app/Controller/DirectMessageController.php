@@ -124,14 +124,6 @@ class DirectMessageController extends AbstractController
                 continue;
             }
 
-            if (empty($dm->status->content)) {
-                continue;
-            }
-
-            if (empty($dm->directMessage)) {
-                continue;
-            }
-
             if (!empty($dm->deleted_account[$accountId]) && $dm->deleted_account[$accountId]['state'] == 'deleted') {
                 continue;
             }
@@ -141,12 +133,12 @@ class DirectMessageController extends AbstractController
                 'avatar' => $account->getAvatarOrDefault(),
                 'displayName' => $account->display_name,
                 'acct' => $account->acct,
-                'timeAgo' => $dm->directMessage->created_at?->diffForHumans(null, null, true),
-                'time' => $dm->directMessage->created_at?->getTimestamp(),
-                'content' => $dm->status->content,
+                'timeAgo' => $dm->directMessage?->created_at?->diffForHumans(null, null, true),
+                'time' => $dm->directMessage?->created_at?->getTimestamp(),
+                'content' => $dm->status?->content,
                 'has_unread' => false
             ];
-            if ($dm->directMessage->from_id != $accountId) {
+            if ($dm->directMessage && $dm->directMessage->from_id != $accountId) {
                 $tmp['has_unread'] = is_null($dm->directMessage->read_at);
             }
 
