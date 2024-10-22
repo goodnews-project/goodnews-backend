@@ -700,7 +700,7 @@ class Helper {
             return $account;
         }
 
-        if(empty($account->last_webfingered_at) || $account->last_webfingered_at->lt(Carbon::now()->subHours(24))) {
+        if(empty($account->last_webfingered_at) || $account->last_webfingered_at->lt(Carbon::now()->subMinutes(5))) {
             return self::accountUpdateOrCreate($url);
         }
         return $account;
