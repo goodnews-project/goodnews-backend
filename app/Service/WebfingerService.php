@@ -22,7 +22,7 @@ class WebfingerService
         $query = str_starts_with($query, '@') ? substr($query, 1) : $query;
         $account = Account::where('acct', $query)->first();
 		if ($account) {
-			return $account;
+            return Helper::accountFetch($account->uri);
 		}
 		$url = self::generateWebfingerUrl($query);
         if (empty($url)) {
