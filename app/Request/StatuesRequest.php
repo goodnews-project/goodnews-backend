@@ -22,7 +22,7 @@ class StatuesRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'content'       => 'required|string|max:500',
+            'content'       => 'required_without:attachments|string|max:500',
             'scope'         => 'in:1,2,3,4',
             'who_can_reply' => 'nullable',
             'reply_to_id'   => 'nullable',
