@@ -164,7 +164,7 @@ class StatusController extends AbstractController
         summary: 'https://docs.joinmastodon.org/methods/statuses/#boost', tags:['mastodon'])]
     public function reblog($id)
     {
-        $status = $this->statusesService->reBlog(Auth::passport()->id, $id);
+        [$status, $_] =  = $this->statusesService->reBlog(Auth::passport()->id, $id);
         return StatusResource::make($status);
     }
 

@@ -182,11 +182,11 @@ class StatusesController extends AbstractController
     public function reBlog($statusId)
     {
         try {
-            $this->statusesService->reBlog(Auth::account()['id'], $statusId);
+            [$_, $newStatus] = $this->statusesService->reBlog(Auth::account()['id'], $statusId);
+            return $this->show($newStatus->id);
         } catch (\Exception $e) {
             return $this->response->json(['msg' => $e->getMessage()])->withStatus(403);
         }
-        return $this->response->raw(null)->withStatus(204);
     }
     #[OA\Put(path: '/_api/v1/statuses/{statusId}/undo-re-blog', summary: "取消转推", tags: ['推文'])]
     #[OA\Response(

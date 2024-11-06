@@ -247,7 +247,7 @@ class StatusesService
         }
 
         Queue::send(['statusId' => $status->id, 'newStatusId' => $newStatus->id], Queue::TOPIC_REBLOG);
-        return $status;
+        return [$status, $newStatus];
     }
 
     public function undoReBlog($accountId, $statusId)
