@@ -19,6 +19,7 @@ class NotificationResource extends JsonResource
         Notification::NOTIFY_TYPE_UPDATE         => 'update',
         Notification::NOTIFY_TYPE_ADMIN_SIGN_UP  => 'admin.sign_up',
         Notification::NOTIFY_TYPE_REPORT         => 'admin.report',
+        Notification::NOTIFY_TYPE_SYSTEM         => 'system',
     ];
     public ?string $wrap = null;
     /**
