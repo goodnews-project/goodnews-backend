@@ -23,6 +23,7 @@ use Carbon\Carbon;
 
 use Hyperf\HttpServer\Annotation\Middleware;
 use Hyperf\Swagger\Annotation as OA;
+use function Hyperf\Collection\collect;
 use function Hyperf\Translation\trans;
 
 #[OA\HyperfServer('http')]
@@ -124,9 +125,13 @@ class DirectMessageController extends AbstractController
                 continue;
             }
 
-            if (!empty($dm->deleted_account[$accountId]) && $dm->deleted_account[$accountId]['state'] == 'deleted') {
-                continue;
+            if (!empty($dm->deleted_account)) {
+                $currentAccount = collect($dm->deleted_account)->first(fn ($item) => $item['account_id'] == $accountId);
+                if ($currentAccount && $currentAccount['state'] == 'deleted') {
+                    continue;
+                }
             }
+
             $tmp = [
                 'id' => $dm->id,
                 'from_id' => $dm->from_id,
@@ -182,8 +187,13 @@ class DirectMessageController extends AbstractController
         $id = $this->request->input('id');
         $accountId = Auth::account()['id'];
         $c = Conversation::findOrFail($id);
-        $deleted_account = [$accountId => ['deleted_at' => Carbon::now(), 'start_dm_id' => $c->dm_id, 'state' => 'deleted']];
-        $c->deleted_account = array_merge((array) $c->deleted_account, $deleted_account);
+        $filteredDeletedAccount = collect($c->deleted_account)->reject(function ($item) use ($accountId) {
+            return $item['account_id'] == $accountId;
+        });
+        $c->deleted_account = $filteredDeletedAccount
+            ->push(['deleted_at' => Carbon::now(), 'start_dm_id' => $c->dm_id, 'state' => 'deleted', 'account_id' => $accountId])
+            ->unique(fn ($item) => $item['account_id'])
+            ->all();
         $c->save();
         return $this->response->raw(null);
     }
