@@ -126,7 +126,7 @@ class DirectMessageController extends AbstractController
             }
 
             if (!empty($dm->deleted_account)) {
-                $currentAccount = collect($dm->deleted_account)->first(fn ($item) => $item['account_id'] == $accountId);
+                $currentAccount = collect($dm->deleted_account)->first(fn ($item) => !empty($item['account_id']) && $item['account_id'] == $accountId);
                 if ($currentAccount && $currentAccount['state'] == 'deleted') {
                     continue;
                 }
@@ -190,7 +190,8 @@ class DirectMessageController extends AbstractController
         $filteredDeletedAccount = collect($c->deleted_account)->reject(fn ($item) => !empty($item['account_id']) && $item['account_id'] == $accountId);
         $c->deleted_account = $filteredDeletedAccount
             ->push(['deleted_at' => Carbon::now(), 'start_dm_id' => $c->dm_id, 'state' => 'deleted', 'account_id' => $accountId])
-            ->unique(fn ($item) => !empty($item['account_id']) && $item['account_id'])
+            ->unique('account_id')
+            ->values()
             ->all();
         $c->save();
         return $this->response->raw(null);
