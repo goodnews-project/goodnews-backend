@@ -187,12 +187,10 @@ class DirectMessageController extends AbstractController
         $id = $this->request->input('id');
         $accountId = Auth::account()['id'];
         $c = Conversation::findOrFail($id);
-        $filteredDeletedAccount = collect($c->deleted_account)->reject(function ($item) use ($accountId) {
-            return $item['account_id'] == $accountId;
-        });
+        $filteredDeletedAccount = collect($c->deleted_account)->reject(fn ($item) => !empty($item['account_id']) && $item['account_id'] == $accountId);
         $c->deleted_account = $filteredDeletedAccount
             ->push(['deleted_at' => Carbon::now(), 'start_dm_id' => $c->dm_id, 'state' => 'deleted', 'account_id' => $accountId])
-            ->unique(fn ($item) => $item['account_id'])
+            ->unique(fn ($item) => !empty($item['account_id']) && $item['account_id'])
             ->all();
         $c->save();
         return $this->response->raw(null);
