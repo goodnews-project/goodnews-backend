@@ -84,7 +84,7 @@ class Inbox
                 if ($validator->fails()) {
                     // Handle exception
                     $errorMessage = $validator->errors()->first();
-                    throw new \Exception($errorMessage);
+                    throw new InboxException($errorMessage);
                 }
                 $this->handleAnnounceActivity();
                 break;
@@ -104,7 +104,7 @@ class Inbox
                 if ($validator->fails()) {
                     // Handle exception
                     $errorMessage = $validator->errors()->first();
-                    throw new \Exception($errorMessage);
+                    throw new InboxException($errorMessage);
                 }
                 $this->handleFollowActivity();
                 break;
@@ -125,7 +125,7 @@ class Inbox
                 if ($validator->fails()) {
                     // Handle exception
                     $errorMessage = $validator->errors()->first();
-                    throw new \Exception($errorMessage);
+                    throw new InboxException($errorMessage);
                 }
 
                 $this->handleAcceptActivity();
@@ -150,7 +150,7 @@ class Inbox
                 if ($validator->fails()) {
                     // Handle exception
                     $errorMessage = $validator->errors()->first();
-                    throw new \Exception($errorMessage);
+                    throw new InboxException($errorMessage);
                 }
                 $this->handleLikeActivity();
                 break;
@@ -391,7 +391,7 @@ class Inbox
         $actor = $this->actorFirstOrCreate($this->payload['actor']);
         $object = $this->payload['object'];
 
-        if (!$actor || $actor->isLocal()) {
+        if ($actor->isLocal()) {
             return;
         }
 
@@ -689,14 +689,11 @@ class Inbox
         $activity = $this->payload['object'];
         $actor = $this->actorFirstOrCreate($this->payload['actor']);
         if (!$actor) {
-            return;
+            throw new InboxException('handleCreateActivity-actor is null, actor:'.$this->payload['actor']);
         }
 
-        if (!isset($activity['to'])) {
-            return;
-        }
-        $to = isset($activity['to']) ? $activity['to'] : [];
-        $cc = isset($activity['cc']) ? $activity['cc'] : [];
+        $to = $activity['to'] ?? [];
+        $cc = $activity['cc'] ?? [];
 
         if ($activity['type'] == ActivityPubActivityInterface::TYPE_QUESTION) {
             $this->handlePollCreate();
@@ -725,8 +722,8 @@ class Inbox
     {
         $activity = $this->payload['object'];
         $actor = $this->actorFirstOrCreate($this->payload['actor']);
-        if (!$actor || $actor->isLocal()) {
-            return;
+        if ($actor->isLocal()) {
+            throw new InboxException('handlePollCreate-actor is local account and not need to fetch, actor:'.$this->payload['actor']);
         }
         Helper::statusFirstOrFetch($activity['id']);
     }
@@ -828,11 +825,11 @@ class Inbox
     {
         $activity = $this->payload['object'];
         $actor = $this->actorFirstOrCreate($this->payload['actor']);
-        if (!$actor || $actor->domain == null) {
-            return;
+        if ($actor->isLocal()) {
+            throw new InboxException('handleNoteReply-actor is local account and not need to fetch, actor:'.$this->payload['actor']);
         }
 
-        $url = isset($activity['url']) ? $activity['url'] : $activity['id'];
+        $url = $activity['url'] ?? $activity['id'];
 
         Helper::statusFirstOrFetch($url, true);
     }
@@ -842,14 +839,8 @@ class Inbox
     {
         $activity = $this->payload['object'];
         $actor = $this->actorFirstOrCreate($this->payload['actor']);
-
-        if (!$actor || $actor->isLocal()) {
-            Log::info('!actor || actor->isLocal');
-            return;
-        }
-
-        if (empty($activity['id'])) {
-            return;
+        if ($actor->isLocal()) {
+            throw new InboxException('handleNoteCreate-actor is local account and not need to fetch, actor:'.$this->payload['actor']);
         }
 
         $redis = \Hyperf\Support\make(RedisService::class);
@@ -943,28 +934,28 @@ class Inbox
         $actor = $this->actorFirstOrCreate($this->payload['actor']);
         $target = $this->actorFirstOrCreate($this->payload['object']);
         if (!$actor || !$target) {
-            Log::info('actor | target domain empty');
-            return;
+            throw new InboxException('actor | target is empty:'.json_encode((array)$this->payload));
         }
 
-        if ($actor->domain == null || ($target->domain !== null && $target->domain != env('AP_HOST'))) {
-            Log::info('actor | target domain is null!');
-            return;
-        }
-
-        if (
-            Follow::where('account_id', $actor->id)->where('target_account_id', $target->id)->exists()
-            || FollowRequest::where('account_id', $actor->id)->where('target_account_id', $target->id)->exists()
-        ) {
-            Log::info('Follow exists!');
-            return;
+        if ($actor->isLocal() || !$target->isLocal()) {
+            throw new InboxException('not about the account of this intance:'.json_encode((array)$this->payload));
         }
 
         if (in_array($actor->id, $target->blocks->pluck('target_account_id')->toArray())) {
             return;
         }
 
+        if (Follow::where('account_id', $actor->id)->where('target_account_id', $target->id)->exists()) {
+            Log::info(sprintf('Follow exists,[from(%s)->to(%s)]', $this->payload['actor'], $this->payload['object']));
+            return;
+        }
+
         if ($target->manually_approves_follower) {
+            if (FollowRequest::where('account_id', $actor->id)->where('target_account_id', $target->id)->exists()) {
+                Log::info(sprintf('Follow request exists,[from(%s)->to(%s)]', $this->payload['actor'], $this->payload['object']));
+                return;
+            }
+
             FollowRequest::updateOrCreate([
                 'account_id' => $actor->id,
                 'target_account_id' => $target->id,
@@ -972,13 +963,11 @@ class Inbox
                 'activity' => \Hyperf\Collection\collect($this->payload)->only(['id', 'actor', 'object', 'type'])->toArray()
             ]);
 
-            if ($target->isLocal()) {
-                Notification::create([
-                    'account_id' => $actor->id,
-                    'target_account_id' => $target->id,
-                    'notify_type' => Notification::NOTIFY_TYPE_FOLLOW_REQUEST,
-                ]);
-            }
+            Notification::create([
+                'account_id' => $actor->id,
+                'target_account_id' => $target->id,
+                'notify_type' => Notification::NOTIFY_TYPE_FOLLOW_REQUEST,
+            ]);
             return;
         }
 
@@ -1003,12 +992,10 @@ class Inbox
         Helper::sendSignedObject($target, $actor->inbox_uri, $accept);
 
         // add to notify
-        if ($target->isLocal()) {
-            $notification = new Notification();
-            $notification->account_id = $actor->id;
-            $notification->target_account_id = $target->id;
-            $notification->notify_type = Notification::NOTIFY_TYPE_FOLLOW;
-            $notification->save();
-        }
+        Notification::create([
+            'account_id' => $actor->id,
+            'target_account_id' => $target->id,
+            'notify_type' => Notification::NOTIFY_TYPE_FOLLOW,
+        ]);
     }
 }

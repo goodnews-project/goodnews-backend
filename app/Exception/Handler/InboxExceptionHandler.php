@@ -30,7 +30,7 @@ class InboxExceptionHandler extends ExceptionHandler
     public function handle(Throwable $throwable, ResponseInterface $response)
     {
         $this->logger->get('inbox','inbox')->error(sprintf('%s[%s] in %s', $throwable->getMessage(), $throwable->getLine(), $throwable->getFile()));
-        $this->logger->get('inbox','inbox')->error($throwable->getTraceAsString());
+//        $this->logger->get('inbox','inbox')->error($throwable->getTraceAsString());
         return $response;
     }
 

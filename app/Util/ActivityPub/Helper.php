@@ -244,7 +244,7 @@ class Helper {
         $redis = \Hyperf\Support\make(RedisService::class);
         $key = md5($url);
         if (!$redis->acquireLock($key)) {
-            throw new InboxException('cannot get lock to fetch status', compact('url'));
+            return null;
         }
 
         try {
@@ -254,7 +254,6 @@ class Helper {
         } catch (\Exception $e) {
             $s = 'statusFirstOrFetch exception:'.$e->getMessage().', file:'.$e->getFile().':'.$e->getLine().' , url:'.$url.PHP_EOL;
             Log::error('statusFirstOrFetch exception:'.$e->getMessage().', file:'.$e->getFile().':'.$e->getLine().' , url:'.$url);
-            var_dump($s.$e->getTraceAsString());
             $redis->releaseLock($key);
         }
         return null;
@@ -676,7 +675,7 @@ class Helper {
     {
         $url = self::validateUrl($url);
         if($url == false) {
-            return null;
+            throw new InboxException('invalid url:'.$url);
         }
 
         $host = parse_url($url, PHP_URL_HOST);
@@ -692,8 +691,7 @@ class Helper {
         }
 
         if (!$account) {
-            Log::warning('account is null, account:'.$account.', url:'.$url);
-            return null;
+            throw new InboxException('account created fail, account:'.$account.', url:'.$url);
         }
 
         if($account->isLocal()) {
@@ -709,31 +707,23 @@ class Helper {
     public static function accountUpdateOrCreate($url)
     {
         $res = self::fetchAccountFromUrl($url);
-        if(!$res || isset($res['id']) == false) {
-            return null;
+        if (empty($res['id'])) {
+            throw new InboxException('fetch account fail, url:'.$url);
         }
 
         $domain = parse_url($res['id'], PHP_URL_HOST);
-        if(!isset($res['preferredUsername']) && !isset($res['nickname'])) {
-            Log::info('accountUpdateOrCreate-preferredUsername is null');
-            return null;
+        if (empty($res['preferredUsername']) && empty($res['nickname'])) {
+            throw new InboxException('accountUpdateOrCreate-preferredUsername or nickname is null');
         }
         $username = (string) ($res['preferredUsername'] ?? $res['nickname']);
-        if(empty($username)) {
-            Log::info('accountUpdateOrCreate-username is null');
-            return null;
-        }
-
         $acct = "{$username}@{$domain}";
 
-        if(!self::validateUrl($res['inbox'])) {
-            Log::info('accountUpdateOrCreate-res[inbox] is null,url:'.$res['inbox']);
-            return null;
+        if (!self::validateUrl($res['inbox'])) {
+            throw new InboxException('accountUpdateOrCreate-res[inbox] is null,url:'.$res['inbox']);
         }
 
-        if(!self::validateUrl($res['id'])) {
-            Log::info('accountUpdateOrCreate-res[id] is null,url:'.$res['id']);
-            return null;
+        if (!self::validateUrl($res['id'])) {
+            throw new InboxException('accountUpdateOrCreate-res[id] is null,url:'.$res['id']);
         }
 
         Instance::updateOrCreate(['domain' => $domain]);
@@ -773,7 +763,7 @@ class Helper {
                 try {
                     $accountData['avatar'] = \Hyperf\Support\make(AttachmentServiceV3::class)->donwloadAndUpload($accountData['avatar_remote_url']);
                 } catch (\Exception $e) {
-                    Log::error('avatar download fail:'.$e->getMessage());
+                    Log::error('avatar download fail:'.$e->getMessage().', url:'.$accountData['avatar_remote_url']);
                 }
 
             }
@@ -783,7 +773,7 @@ class Helper {
                 try {
                     $accountData['profile_image'] = \Hyperf\Support\make(AttachmentServiceV3::class)->donwloadAndUpload($accountData['profile_remote_image']);
                 } catch (\Exception $e) {
-                    Log::error('profile_image download fail:'.$e->getMessage());
+                    Log::error('profile_image download fail:'.$e->getMessage().', url:'.$accountData['profile_remote_image']);
                 }
             }
 
@@ -836,9 +826,8 @@ class Helper {
 
             try {
                 $image_url = \Hyperf\Support\make(AttachmentServiceV3::class)->donwloadAndUpload($tag['icon']['url']);
-                Log::info("pin pin 3");
             } catch (\Exception $e) {
-                Log::error('CustomEmoji::updateOrCreate image_url download fail:'.$e->getMessage());
+                Log::error('CustomEmoji::updateOrCreate image_url download fail:'.$e->getMessage().', url:'.$tag['icon']['url']);
                 return;
             }
 
