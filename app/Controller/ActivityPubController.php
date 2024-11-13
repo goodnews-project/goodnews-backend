@@ -94,28 +94,26 @@ class ActivityPubController extends AbstractController
         return $data;
     }
 
-    public function inbox(string $username, InboxRequest $inboxRequest)
+    public function inbox(string $username)
     {
-        $payload = $inboxRequest->validated();
         $processInbox = make(ProcessInboxValidator::class,[
             'username' => $username,
             'request'  => $this->request
         ]);
         $processInbox->verify();
-        $this->activitypubService->inbox($this->request->getHeaders(), $payload);
+        $this->activitypubService->inbox($this->request->getHeaders(), $processInbox->getValidated());
         return $this->response->raw(null);
     }
 
     #[Middleware(ActivitypubMiddleware::class)]
-    public function sharedInbox(InboxRequest $inboxRequest)
+    public function sharedInbox()
     {
-        $payload = $inboxRequest->validated();
         $processInbox = make(ProcessInboxValidator::class,[
             'username' => null,
             'request'  => $this->request
         ]);
         $processInbox->shareInboxVerify();
-        $this->activitypubService->inbox($this->request->getHeaders(), $payload);
+        $this->activitypubService->inbox($this->request->getHeaders(), $processInbox->getValidated());
         return $this->response->raw(null);
     }
 

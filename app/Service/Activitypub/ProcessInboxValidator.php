@@ -49,7 +49,13 @@ class ProcessInboxValidator
 
 		$this->payload = json_decode($this->request->getBody()->getContents(),true);
 		$validator = $this->validationFactory->make($this->payload,[
-            'id' => 'required',
+            '@context' => 'nullable',
+            'id' => 'required|url',
+            'type' => 'required',
+            'actor' => 'required',
+            'to' => 'required',
+            'object' => 'required',
+            'cc' => 'nullable',
         ]);
 		if ($validator->fails()){
 			$errors = json_encode($validator->errors()->getMessages());
@@ -57,7 +63,10 @@ class ProcessInboxValidator
         }	
 	}
 
-
+    public function getValidated()
+    {
+        return $this->payload;
+    }
 
 	#[ExecTimeLogger("inbox", 'inbox')]
 	public function verify()

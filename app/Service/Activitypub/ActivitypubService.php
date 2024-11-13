@@ -148,6 +148,7 @@ class ActivitypubService
             'object' => $payload['object'],
         ]);
         make(Inbox::class, ['payload' => $payload, 'logId' => $logId])->handle();
+        Log::info($logId.'-end processing inbox');
     }
 
     public function checkRelay($headers, $payload)
