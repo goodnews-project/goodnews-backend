@@ -23,22 +23,16 @@ use App\Nsq\Queue;
 use App\Resource\Mastodon\StatusResource;
 use App\Service\Activitypub\DeleteRemoteAccount;
 use App\Service\Activitypub\DeleteRemoteStatus;
-use App\Service\AttachmentService;
 use App\Service\AttachmentServiceV2;
 use App\Service\AttachmentServiceV3;
 use App\Service\RedisService;
 use App\Service\UrisService;
-use App\Service\UserService;
 use App\Service\Websocket;
-use App\Util\Image\ImageStream;
 use App\Util\Log;
 use Carbon\Carbon;
 use Hyperf\Collection\Arr;
 use Hyperf\Di\Annotation\Inject;
-use Hyperf\Utils\Str;
 use Hyperf\Validation\Contract\ValidatorFactoryInterface;
-use Hyperf\Validation\Rule;
-use Jcupitt\Vips\Image;
 use function Hyperf\Support\env;
 
 class Inbox
@@ -47,15 +41,15 @@ class Inbox
     protected $account;
     protected $payload;
     protected $logger;
+    protected string $logId;
 
     #[Inject]
     protected ValidatorFactoryInterface $validationFactory;
 
-    public function __construct($headers, $account, $payload)
+    public function __construct($payload, $logId)
     {
-        $this->headers = $headers;
-        $this->account = $account;
         $this->payload = $payload;
+        $this->logId = $logId;
     }
 
     public function handle()
@@ -73,61 +67,13 @@ class Inbox
                 $this->handleCreateActivity();
                 break;
             case ActivityPubActivityInterface::TYPE_ANNOUNCE:
-                $validator = $this->validationFactory->make($this->payload, [
-                    '@context' => 'required',
-                    'id' => 'required|string',
-                    'type' => [
-                        'required',
-                        Rule::in(['Announce'])
-                    ],
-                ]);
-                if ($validator->fails()) {
-                    // Handle exception
-                    $errorMessage = $validator->errors()->first();
-                    throw new InboxException($errorMessage);
-                }
                 $this->handleAnnounceActivity();
                 break;
 
             case ActivityPubActivityInterface::TYPE_FOLLOW:
-                $validator = $this->validationFactory->make(
-                    $this->payload,
-                    [
-                        '@context' => 'required',
-                        'id' => 'required|string',
-                        'type' => [
-                            'required',
-                            Rule::in(['Follow'])
-                        ],
-                    ]
-                );
-                if ($validator->fails()) {
-                    // Handle exception
-                    $errorMessage = $validator->errors()->first();
-                    throw new InboxException($errorMessage);
-                }
                 $this->handleFollowActivity();
                 break;
             case ActivityPubActivityInterface::TYPE_ACCEPT:
-                $validator = $this->validationFactory->make($this->payload, [
-                    '@context' => 'required',
-                    'id' => 'required|string',
-                    'type' => [
-                        'required',
-                        Rule::in(['Accept'])
-                    ],
-                    'object' => 'required',
-                    'object.type' => [
-                        'required',
-                        Rule::in(['Follow'])
-                    ],
-                ]);
-                if ($validator->fails()) {
-                    // Handle exception
-                    $errorMessage = $validator->errors()->first();
-                    throw new InboxException($errorMessage);
-                }
-
                 $this->handleAcceptActivity();
                 break;
 
@@ -136,22 +82,6 @@ class Inbox
                 break;
 
             case ActivityPubActivityInterface::TYPE_LIKE:
-                $validator = $this->validationFactory->make(
-                    $this->payload,
-                    [
-                        '@context' => 'required',
-                        'id' => 'required|string',
-                        'type' => [
-                            'required',
-                            Rule::in(['Like'])
-                        ],
-                    ]
-                );
-                if ($validator->fails()) {
-                    // Handle exception
-                    $errorMessage = $validator->errors()->first();
-                    throw new InboxException($errorMessage);
-                }
                 $this->handleLikeActivity();
                 break;
             case ActivityPubActivityInterface::TYPE_UNDO:
@@ -168,6 +98,7 @@ class Inbox
                 break;
 
             default:
+                Log::info($this->logId.'- enter default', (array) $this->payload);
                 return null;
         }
     }
@@ -689,7 +620,7 @@ class Inbox
         $activity = $this->payload['object'];
         $actor = $this->actorFirstOrCreate($this->payload['actor']);
         if (!$actor) {
-            throw new InboxException('handleCreateActivity-actor is null, actor:'.$this->payload['actor']);
+            throw new InboxException($this->logId.'-handleCreateActivity-actor is null, actor:'.$this->payload['actor']);
         }
 
         $to = $activity['to'] ?? [];
@@ -723,7 +654,7 @@ class Inbox
         $activity = $this->payload['object'];
         $actor = $this->actorFirstOrCreate($this->payload['actor']);
         if ($actor->isLocal()) {
-            throw new InboxException('handlePollCreate-actor is local account and not need to fetch, actor:'.$this->payload['actor']);
+            throw new InboxException($this->logId.'-handlePollCreate-actor is local account and not need to fetch, actor:'.$this->payload['actor']);
         }
         Helper::statusFirstOrFetch($activity['id']);
     }
@@ -826,7 +757,7 @@ class Inbox
         $activity = $this->payload['object'];
         $actor = $this->actorFirstOrCreate($this->payload['actor']);
         if ($actor->isLocal()) {
-            throw new InboxException('handleNoteReply-actor is local account and not need to fetch, actor:'.$this->payload['actor']);
+            throw new InboxException($this->logId.'-handleNoteReply-actor is local account and not need to fetch, actor:'.$this->payload['actor']);
         }
 
         $url = $activity['url'] ?? $activity['id'];
@@ -840,7 +771,7 @@ class Inbox
         $activity = $this->payload['object'];
         $actor = $this->actorFirstOrCreate($this->payload['actor']);
         if ($actor->isLocal()) {
-            throw new InboxException('handleNoteCreate-actor is local account and not need to fetch, actor:'.$this->payload['actor']);
+            throw new InboxException($this->logId.'-handleNoteCreate-actor is local account and not need to fetch, actor:'.$this->payload['actor']);
         }
 
         $redis = \Hyperf\Support\make(RedisService::class);
@@ -872,7 +803,7 @@ class Inbox
             );
             $redis->releaseLock($key);
         } catch (\Exception $e) {
-            Log::error(__FUNCTION__ . ' exception:' . $e->getMessage() . ', file:' . $e->getFile() . ':' . $e->getLine() . ' , remote status id:' . $activity['id']);
+            Log::error($this->logId . ' exception:' . $e->getMessage() . ', file:' . $e->getFile() . ':' . $e->getLine() . ' , remote status id:' . $activity['id']);
             $redis->releaseLock($key);
         }
     }
@@ -882,12 +813,7 @@ class Inbox
         $activity = $this->payload['object'];
         $actor = $this->actorFirstOrCreate($this->payload['actor']);
 
-        if (!$actor) {
-            return;
-        }
-
         $status = Helper::statusFirstOrFetch($activity['inReplyTo']);
-
         if (!$status) {
             return;
         }
@@ -934,11 +860,11 @@ class Inbox
         $actor = $this->actorFirstOrCreate($this->payload['actor']);
         $target = $this->actorFirstOrCreate($this->payload['object']);
         if (!$actor || !$target) {
-            throw new InboxException('actor | target is empty:'.json_encode((array)$this->payload));
+            throw new InboxException($this->logId.'- actor | target is empty:'.json_encode((array)$this->payload));
         }
 
         if ($actor->isLocal() || !$target->isLocal()) {
-            throw new InboxException('not about the account of this intance:'.json_encode((array)$this->payload));
+            throw new InboxException($this->logId.'- not about the account of this intance:'.json_encode((array)$this->payload));
         }
 
         if (in_array($actor->id, $target->blocks->pluck('target_account_id')->toArray())) {
@@ -946,13 +872,13 @@ class Inbox
         }
 
         if (Follow::where('account_id', $actor->id)->where('target_account_id', $target->id)->exists()) {
-            Log::info(sprintf('Follow exists,[from(%s)->to(%s)]', $this->payload['actor'], $this->payload['object']));
+            Log::info(sprintf($this->logId.'-Follow exists,[from(%s)->to(%s)]', $this->payload['actor'], $this->payload['object']));
             return;
         }
 
         if ($target->manually_approves_follower) {
             if (FollowRequest::where('account_id', $actor->id)->where('target_account_id', $target->id)->exists()) {
-                Log::info(sprintf('Follow request exists,[from(%s)->to(%s)]', $this->payload['actor'], $this->payload['object']));
+                Log::info(sprintf($this->logId.'-Follow request exists,[from(%s)->to(%s)]', $this->payload['actor'], $this->payload['object']));
                 return;
             }
 

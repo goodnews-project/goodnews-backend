@@ -4,10 +4,16 @@ namespace App\Service\Activitypub;
 
 use App\Entity\Contracts\ActivityPubActivityInterface;
 use App\Model\Account;
+use App\Model\Relay;
 use App\Service\DeliveryFailureTracker;
+use App\Service\SettingService;
 use App\Service\UrisService;
+use App\Util\ActivityPub\Helper;
 use App\Util\ActivityPub\HttpSignature;
+use App\Util\ActivityPub\Inbox;
+use App\Util\Log;
 use Hyperf\Logger\Logger;
+use function Hyperf\Support\make;
 
 class ActivitypubService
 {
@@ -121,5 +127,54 @@ class ActivitypubService
         }
 
         return $data;
+    }
+
+    public function inbox($headers, $payload)
+    {
+        if (!$this->checkRelay($headers, $payload)) {
+            return;
+        }
+
+        if (Helper::getSensitive($payload['object'], $payload['id'] ?? $payload['url']) && !SettingService::receive_remote_sensitive()) {
+            return;
+        }
+
+        $logId = uniqid('log-');
+        Log::info($logId.'-start processing inbox:', [
+            'id' => $payload['id'],
+            'type' => $payload['type'],
+            'actor' => $payload['actor'],
+            'to' => $payload['to'],
+            'object' => $payload['object'],
+        ]);
+        make(Inbox::class, ['payload' => $payload, 'logId' => $logId])->handle();
+    }
+
+    public function checkRelay($headers, $payload)
+    {
+        $signature = is_array($headers['signature']) ? $headers['signature'][0] : $headers['signature'];
+        $signatureData = HttpSignature::parseSignatureHeader($signature);
+
+        $keyId = Helper::validateUrl($signatureData['keyId']);
+        $host = parse_url($keyId, PHP_URL_HOST);
+
+        $relay = Relay::where('inbox_url', 'like', '%'.$host.'%')->first();
+        if (empty($relay)) {
+            return true;
+        }
+
+        if ($relay->state == Relay::STATE_IDLE) {
+            return false;
+        }
+
+        if ($relay->mode == Relay::MODE_WRITE_ONLY) {
+            return false;
+        }
+
+        if ($payload['type'] != ActivityPubActivityInterface::TYPE_ACCEPT) {
+            $relay->state = Relay::STATE_ACCEPTED;
+            $relay->save();
+        }
+        return true;
     }
 }

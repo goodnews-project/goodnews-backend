@@ -15,22 +15,26 @@ use App\Entity\Contracts\ActivityPubActivityInterface;
 use App\Exception\AppException;
 use App\Middleware\ActivitypubMiddleware;
 use App\Model\Account;
-use App\Model\Attachment;
 use App\Model\Follow;
 use App\Model\Status;
 use App\Nsq\Consumer\ActivityPub\Trait\ApRepository;
+use App\Request\InboxRequest;
 use App\Service\Activitypub\ActivitypubService;
 use App\Service\Activitypub\ProcessInboxValidator;
 use App\Service\UrisService;
 use App\Util\Log;
 use Carbon\Carbon;
 
+use Hyperf\Di\Annotation\Inject;
 use Hyperf\HttpServer\Annotation\Middleware;
 use function Hyperf\Support\make;
 
 class ActivityPubController extends AbstractController
 {
     use ApRepository;
+
+    #[Inject]
+    protected ActivitypubService $activitypubService;
 
     public function user($username)
     {
@@ -90,24 +94,28 @@ class ActivityPubController extends AbstractController
         return $data;
     }
 
-    public function inbox(string $username)
+    public function inbox(string $username, InboxRequest $inboxRequest)
     {
+        $payload = $inboxRequest->validated();
         $processInbox = make(ProcessInboxValidator::class,[
             'username' => $username,
             'request'  => $this->request
         ]);
-        $processInbox->process();
+        $processInbox->verify();
+        $this->activitypubService->inbox($this->request->getHeaders(), $payload);
         return $this->response->raw(null);
     }
 
     #[Middleware(ActivitypubMiddleware::class)]
-    public function sharedInbox()
+    public function sharedInbox(InboxRequest $inboxRequest)
     {
+        $payload = $inboxRequest->validated();
         $processInbox = make(ProcessInboxValidator::class,[
             'username' => null,
             'request'  => $this->request
         ]);
-        $processInbox->processShareInbox();
+        $processInbox->shareInboxVerify();
+        $this->activitypubService->inbox($this->request->getHeaders(), $payload);
         return $this->response->raw(null);
     }
 

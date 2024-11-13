@@ -19,6 +19,7 @@ use App\Util\ActivityPub\{
 use Hyperf\Validation\Contract\ValidatorFactoryInterface;
 use Hyperf\Di\Annotation\Inject;
 use Hyperf\HttpServer\Contract\RequestInterface;
+use function Hyperf\Support\make;
 
 class ProcessInboxValidator
 {
@@ -35,7 +36,6 @@ class ProcessInboxValidator
 
 	protected function preparData()
 	{
-
 		//validate header 
 		$headers = $this->request->getHeaders();
 		$validator = $this->validationFactory->make($headers,[
@@ -60,7 +60,7 @@ class ProcessInboxValidator
 
 
 	#[ExecTimeLogger("inbox", 'inbox')]
-	public function process()
+	public function verify()
 	{
         if ($this->isRejectApType($this->payload['type'])) {
             return;
@@ -70,23 +70,17 @@ class ProcessInboxValidator
 		$headers = $this->request->getHeaders();
 		$account = Account::where('username', $username)->whereNull('domain')->first();
         if (!$account) {
-            return;
+            throw new InboxException('account not exists, username:'.$username);
         }
 
 		$r = $this->verifySignature($headers, $account);
-        if (!$r) {
-            return;
+        if ($r === false) {
+            throw new InboxException('inbox verify signature fail, username:'.$username);
         }
-
-        if (Helper::getSensitive($this->payload['object'], $this->payload['id'] ?? $this->payload['url']) && !SettingService::receive_remote_sensitive()) {
-            return;
-        }
-
-        (new Inbox($headers, $account, $this->payload))->handle();
 	}
 
     #[ExecTimeLogger("inbox", 'inbox')]
-    public function processShareInbox()
+    public function shareInboxVerify()
     {
         if ($this->isRejectApType($this->payload['type'])) {
             return;
@@ -94,11 +88,9 @@ class ProcessInboxValidator
         $headers = $this->request->getHeaders();
 
         $r = $this->verifySignature($headers);
-        if (!$r) {
-            return;
+        if ($r === false) {
+            throw new InboxException('share inbox verify signature fail');
         }
-
-        (new Inbox($headers, null, $this->payload))->handle();
     }
 
     private function isRejectApType($type): bool
@@ -131,29 +123,6 @@ class ProcessInboxValidator
 		}
 
 		$keyId = Helper::validateUrl($signatureData['keyId']);
-        $host = parse_url($keyId, PHP_URL_HOST);
-
-        // todo 先不屏蔽，在后台手动操作
-//        if (\Hyperf\Support\make(DeliveryFailureTracker::class, ['urlOrHost' => $host])->isUnavailable()) {
-//            throw new InboxException('host['.$host.'] is unavailable' );
-//        }
-
-        $relay = Relay::where('inbox_url', 'like', '%'.$host.'%')->first();
-        if ($relay) {
-            if ($relay->state == Relay::STATE_IDLE) {
-                return false;
-            }
-
-            if ($relay->mode == Relay::MODE_WRITE_ONLY) {
-                return false;
-            }
-
-            if ($this->payload['type'] != ActivityPubActivityInterface::TYPE_ACCEPT) {
-                $relay->state = Relay::STATE_ACCEPTED;
-                $relay->save();
-            }
-        }
-
 		$actor = Account::where('public_key_uri', $keyId)->firstOr(function (){
 			$actorUrl = Helper::pluckval($this->payload['actor']);
 			return Helper::accountFirstOrNew($actorUrl);
