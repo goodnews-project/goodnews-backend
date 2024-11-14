@@ -18,7 +18,6 @@ use App\Model\Account;
 use App\Model\Follow;
 use App\Model\Status;
 use App\Nsq\Consumer\ActivityPub\Trait\ApRepository;
-use App\Request\InboxRequest;
 use App\Service\Activitypub\ActivitypubService;
 use App\Service\Activitypub\ProcessInboxValidator;
 use App\Service\UrisService;
@@ -100,7 +99,10 @@ class ActivityPubController extends AbstractController
             'username' => $username,
             'request'  => $this->request
         ]);
-        $processInbox->verify();
+        if (!$processInbox->verify()) {
+            return $this->response->json(['error' => 'verify fail']);
+        }
+
         $this->activitypubService->inbox($this->request->getHeaders(), $processInbox->getValidated());
         return $this->response->raw(null);
     }
@@ -112,7 +114,10 @@ class ActivityPubController extends AbstractController
             'username' => null,
             'request'  => $this->request
         ]);
-        $processInbox->shareInboxVerify();
+
+        if (!$processInbox->shareInboxVerify()) {
+            return $this->response->json(['error' => 'verify fail']);
+        }
         $this->activitypubService->inbox($this->request->getHeaders(), $processInbox->getValidated());
         return $this->response->raw(null);
     }

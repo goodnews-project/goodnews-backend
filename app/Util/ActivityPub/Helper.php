@@ -40,10 +40,16 @@ use function Hyperf\Support\make;
 class Helper {
 
     protected static ValidatorFactoryInterface $validationFactory;
+    protected static string $logId;
 
     public static function setValidationFactory(ValidatorFactoryInterface $validationFactory)
     {
         self::$validationFactory = $validationFactory;
+    }
+
+    public static function setLogId($logID)
+    {
+        self::$logId = $logID ?: '';
     }
 
     public static function validateObject($data)
@@ -272,12 +278,12 @@ class Helper {
         }
 
         $cached = Status::where('uri', $url)->orWhere('url', $url)->first();
-        Log::info('statusFirstOrFetch-cached', ['cached' => $cached != null, 'url' => $url]);
+        Log::info(self::$logId.'-statusFirstOrFetch-cached', ['cached' => $cached != null, 'url' => $url]);
         if($cached) {
-            Log::info('statusFirstOrFetch-cached return');
+            Log::info(self::$logId.'-statusFirstOrFetch-cached return');
             return $cached;
         }
-        Log::info('statusFirstOrFetch-cached pass');
+        Log::info(self::$logId.'.statusFirstOrFetch-cached pass');
 
         $res = self::fetchFromUrl($url);
         if(empty($res) || isset($res['error']) || !isset($res['@context']) || !isset($res['published']) ) {
@@ -445,14 +451,14 @@ class Helper {
             self::statusTags($activity, $status);
         }
 
-        Log::info('storeStatus success,id:'.$status->id, $activity);
+        Log::info(self::$logId.'-storeStatus success,id:'.$status->id, $activity);
         $account->status_count += 1;
         $account->save();
         $execution_time =microtime(true) - $time_start;
 
         Websocket::pushPublicRemote(StatusResource::make($status));
         Websocket::pushStatusToFollower($status);
-        Log::info("inbox : store status $execution_time");
+        Log::info(self::$logId."-inbox : store status $execution_time");
         return $status;
     }
 
@@ -587,7 +593,7 @@ class Helper {
                   ->exists();
 
         if ($account->id === $mentionAccountId || $exists) {
-            Log::info('notifyMention: account->id === mentionAccountId || exists, status_id:'.$status->id);
+            Log::info(self::$logId.'-notifyMention: account->id === mentionAccountId || exists, status_id:'.$status->id);
             return;
         }
 
@@ -625,7 +631,7 @@ class Helper {
         $account = $status->account;
         $reply = Status::find($status->reply_to_id);
         if (!$account || !$reply) {
-            Log::info('!account || !reply, status:'.$status->id);
+            Log::info(self::$logId.'-!account || !reply, status:'.$status->id);
             return;
         }
 
@@ -637,7 +643,7 @@ class Helper {
             ->where('read',0)
             ->exists();
         if ($exists) {
-            Log::info('exists, status:'.$status->id);
+            Log::info(self::$logId.'-exists, status:'.$status->id);
             return;
         }
 
@@ -796,9 +802,9 @@ class Helper {
                 $accountData['acct'] = $acct;
                 $account = Account::create($accountData);
             }
-            Log::info('accountUpdateOrCreate-accountData:', $accountData);
+            Log::info(self::$logId.'-accountUpdateOrCreate-accountData:', $accountData);
         } catch (\Exception $e) {
-            Log::info('accountUpdateOrCreate-exception:'.$e->getMessage().$e->getFile().$e->getLine());
+            Log::info(self::$logId.'-accountUpdateOrCreate-exception:'.$e->getMessage().$e->getFile().$e->getLine());
             return null;
         }
 
@@ -903,7 +909,7 @@ class Helper {
 
     public static function sendSignedObject($account, $url, $body)
     {
-        Log::info('sendSignedObject start', compact('url', 'body'));
+        Log::info(self::$logId.'-sendSignedObject start', compact('url', 'body'));
         $headers = HttpSignature::sign($account, $url, $body, [
             'Content-Type'	=> 'application/activity+json; profile="https://www.w3.org/ns/activitystreams"',
             'User-Agent'	=> ActivitypubService::getUa(),
@@ -918,9 +924,9 @@ class Helper {
                 'json' => $body
             ]);
 
-            Log::info('sendSignedObject---res:', ['reqBody' => $body, 'respBody' => $res->getBody()->getContents(), 'url' => $url]);
+            Log::info(self::$logId.'-sendSignedObject---res:', ['reqBody' => $body, 'respBody' => $res->getBody()->getContents(), 'url' => $url]);
         } catch (\Exception $e) {
-            Log::error('sendSignedObject exception: '.$e->getMessage(), compact('account', 'url', 'body'));
+            Log::error(self::$logId.'-sendSignedObject exception: '.$e->getMessage(), compact('account', 'url', 'body'));
         }
 
     }

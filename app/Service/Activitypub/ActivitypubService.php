@@ -147,6 +147,7 @@ class ActivitypubService
             'to' => $payload['to'],
             'object' => $payload['object'],
         ]);
+        Helper::setLogId($logId);
         make(Inbox::class, ['payload' => $payload, 'logId' => $logId])->handle();
         Log::info($logId.'-end processing inbox');
     }

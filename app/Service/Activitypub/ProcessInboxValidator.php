@@ -72,7 +72,7 @@ class ProcessInboxValidator
 	public function verify()
 	{
         if ($this->isRejectApType($this->payload['type'])) {
-            return;
+            return false;
         }
 
 		$username = $this->username;
@@ -86,13 +86,14 @@ class ProcessInboxValidator
         if ($r === false) {
             throw new InboxException('inbox verify signature fail, username:'.$username);
         }
+        return true;
 	}
 
     #[ExecTimeLogger("inbox", 'inbox')]
     public function shareInboxVerify()
     {
         if ($this->isRejectApType($this->payload['type'])) {
-            return;
+            return false;
         }
         $headers = $this->request->getHeaders();
 
@@ -100,6 +101,7 @@ class ProcessInboxValidator
         if ($r === false) {
             throw new InboxException('share inbox verify signature fail');
         }
+        return true;
     }
 
     private function isRejectApType($type): bool
