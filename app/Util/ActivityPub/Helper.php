@@ -583,7 +583,7 @@ class Helper {
     public static function notifyMention(Status $status, StatusesMention $mention)
     {
         $account = $status->account;
-        $mentionAccountId = $mention->account_id;
+        $mentionAccountId = $mention->target_account_id;
 
         $exists = Notification::where('account_id', $account->id)
                   ->where('target_account_id', $mentionAccountId)
@@ -591,9 +591,12 @@ class Helper {
                   ->where('notify_type', Notification::NOTIFY_TYPE_MENTION)
                   ->where('read', 0)
                   ->exists();
+        if ($exists) {
+            Log::info(self::$logId.'-notifyMention: exists, status_id:'.$status->id);
+        }
 
-        if ($account->id === $mentionAccountId || $exists) {
-            Log::info(self::$logId.'-notifyMention: account->id === mentionAccountId || exists, status_id:'.$status->id);
+        if ($account->id === $mentionAccountId) {
+            Log::info(self::$logId.'-notifyMention: account->id === mentionAccountId, status_id:'.$status->id);
             return;
         }
 
