@@ -15,6 +15,7 @@ use App\Exception\Handler\JWTExceptionHandler;
 return [
     'handler' => [
         'http' => [
+            // \App\Exception\Handler\KernelExceptionHandler::class,
             // Hyperf\HttpServer\Exception\Handler\HttpExceptionHandler::class,
             \App\Exception\Handler\HttpExceptionHandler::class,
             \App\Exception\Handler\ValidationExceptionHandler::class,
@@ -26,7 +27,6 @@ return [
             App\Exception\Handler\AppExceptionHandler::class,
             \Richard\HyperfPassport\PassportExceptionHandler::class,
 
-            \App\Exception\Handler\KernelExceptionHandler::class
         ],
     ],
 ];

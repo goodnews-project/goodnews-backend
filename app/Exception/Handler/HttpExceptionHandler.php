@@ -11,21 +11,18 @@ declare(strict_types=1);
  */
 namespace App\Exception\Handler;
 
-use Hyperf\Contract\StdoutLoggerInterface;
+use App\Service\ViewService;
 use Hyperf\ExceptionHandler\ExceptionHandler;
-use Hyperf\ExceptionHandler\Formatter\FormatterInterface;
-use Hyperf\HttpMessage\Exception\HttpException;
-use Hyperf\HttpMessage\Stream\SwooleStream;
-use Hyperf\HttpServer\Contract\RequestInterface;
+use Hyperf\HttpMessage\Exception\NotFoundHttpException;
 use Psr\Http\Message\ResponseInterface;
+use Hyperf\HttpServer\Contract\ResponseInterface as HttpResponse;
 use Throwable;
 
 class HttpExceptionHandler extends ExceptionHandler
 {
     public function __construct(
-        protected StdoutLoggerInterface $logger, 
-        protected FormatterInterface $formatter,
-        protected RequestInterface $request,
+        protected ViewService $viewService,
+        protected HttpResponse $httpResponse
     )
     {
     }
@@ -36,21 +33,7 @@ class HttpExceptionHandler extends ExceptionHandler
      */
     public function handle(Throwable $throwable, ResponseInterface $response)
     {
-        // $staticFile = __DIR__ . $request->server['request_uri'];
-        // if (! file_exists($staticFile)) {
-        //     return false;
-        // }
-        // $type = pathinfo($staticFile, PATHINFO_EXTENSION);
-        // if (! isset($static[$type])) {
-        //     return false;
-        // }
-        // $response->header('Content-Type', $static[$type]);
-        // $response->sendfile($staticFile);
-
-
-        $this->logger->error("404:" . (string)$this->request->getUri());
-        $this->stopPropagation();
-        return $response->withStatus($throwable->getStatusCode())->withBody(new SwooleStream($throwable->getMessage()));
+        return $this->httpResponse->html($this->viewService->content);
     }
 
     /**
@@ -61,6 +44,6 @@ class HttpExceptionHandler extends ExceptionHandler
      */
     public function isValid(Throwable $throwable): bool
     {
-        return $throwable instanceof HttpException;
+        return $throwable instanceof NotFoundHttpException;
     }
 }

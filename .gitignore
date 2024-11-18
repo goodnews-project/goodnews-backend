@@ -22,3 +22,4 @@ storage/twitter-json
 storage/keys
 docker-compose.yml
 app/Command/SyncTwitterListCommand.php
+public/*

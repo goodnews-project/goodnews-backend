@@ -20,6 +20,7 @@ use App\Controller\UserController;
 use App\Controller\ActivityPubController;
 use App\Controller\WellKnownController;
 use App\Controller\IndexController;
+use App\Controller\Mastodon\V1\StatusController as V1StatusController;
 use App\Controller\NotificationController;
 use App\Controller\View\IndexController as ViewIndexController;
 use App\Controller\View\AccountController as ViewAccountController;
@@ -70,8 +71,6 @@ Router::addGroup('/',function (){
             'token'=>1
         ]);
     });
-    Router::get('',[ViewIndexController::class,'index']);
-    Router::get('{acct}',[ViewAccountController::class,'show']);
 });
 
 
@@ -100,3 +99,5 @@ Router::addGroup('/.well-known', function () {
 Router::addServer('ws', function () {
     Router::get('/api/v1/streaming', 'App\Controller\WebSocketController');
 });
+Router::get('/user/{username}/status/{id}',[StatusController::class,'show']);
+
