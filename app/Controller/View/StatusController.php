@@ -37,6 +37,7 @@ class StatusController extends AbstractController
 
         if ($status->attachments->count()) {
             $meta['og:image'] = $status->attachments->first()->url;
+            $meta['twitter:card'] = 'summary_large_image' ;
         }
         $html = $this->viewService->render($title, $meta);
         return $this->response->html($html);
