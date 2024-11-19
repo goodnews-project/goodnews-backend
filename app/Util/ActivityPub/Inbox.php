@@ -33,6 +33,7 @@ use Carbon\Carbon;
 use Hyperf\Collection\Arr;
 use Hyperf\Di\Annotation\Inject;
 use Hyperf\Validation\Contract\ValidatorFactoryInterface;
+use function Hyperf\Collection\last;
 use function Hyperf\Support\env;
 
 class Inbox
@@ -526,7 +527,7 @@ class Inbox
         }
 
         switch ($obj['type']) {
-            case 'Follow':
+            case ActivityPubActivityInterface::TYPE_FOLLOW:
                 $following = self::actorFirstOrCreate($obj['object']);
                 if (!$following) {
                     return;
@@ -546,7 +547,7 @@ class Inbox
                     });
                 break;
 
-            case 'Like':
+            case ActivityPubActivityInterface::TYPE_LIKE:
                 $objectUri = $obj['object'];
                 if (!is_string($objectUri)) {
                     if (is_array($objectUri) && isset($objectUri['id']) && is_string($objectUri['id'])) {
@@ -570,6 +571,36 @@ class Inbox
                         $item->delete();
                     });
 
+                break;
+            case ActivityPubActivityInterface::TYPE_ACCEPT:
+                break;
+
+            case ActivityPubActivityInterface::TYPE_ANNOUNCE:
+                if (isset($obj['object'])) {
+                    $obj = $obj['object'];
+                }
+                if (!is_string($obj)) {
+                    return;
+                }
+
+                if (Helper::validateLocalUrl($obj)) {
+                    $parsedId = last(explode('/', $obj));
+                    $status = Status::find($parsedId);
+                } else {
+                    $status = Status::where('uri', $obj)->first();
+                }
+                if (!$status) {
+                    return;
+                }
+
+                Status::where('account_id', $account->id)
+                    ->where('reblog_id', $status->id)
+                    ->delete();
+                Notification::where('target_account_id', $status->account_id)
+                    ->where('account_id', $account->id)
+                    ->where('status_id', $status->reblog_id)
+                    ->where('type',Notification::NOTIFY_TYPE_REBLOG)
+                    ->forceDelete();
                 break;
         }
     }
