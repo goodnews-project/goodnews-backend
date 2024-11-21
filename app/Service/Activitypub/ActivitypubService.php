@@ -148,6 +148,8 @@ class ActivitypubService
             'object' => $payload['object'],
         ]);
         Helper::setLogId($logId);
+//        $activityType = ucfirst($payload['type']);
+//        make("App\\Service\\Activitypub\\Activity\\$activityType", ['payload' => $payload])->handle();
         make(Inbox::class, ['payload' => $payload, 'logId' => $logId])->handle();
         Log::info($logId.'-end processing inbox');
     }

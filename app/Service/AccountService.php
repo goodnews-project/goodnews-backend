@@ -201,6 +201,11 @@ class AccountService
         ], $data));
     }
 
+    public function remoteCreate($data)
+    {
+        return Account::updateOrCreate(['acct' => $data['acct'], $data]);
+    }
+
     public function followRequests(Account $account, $limit = 40)
     {
         $followerIds = FollowRequest::where('target_account_id', $account->id)->pluck('account_id');
