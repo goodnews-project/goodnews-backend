@@ -3,10 +3,7 @@
 namespace App\Service\Activitypub\Activity;
 
 use App\Entity\Contracts\ActivityPubActivityInterface;
-use App\Model\FollowRequest;
-use App\Model\Notification;
 use App\Model\Status;
-use App\Model\StatusesFave;
 use App\Util\ActivityPub\Helper;
 use function Hyperf\Collection\last;
 
@@ -16,7 +13,7 @@ class Undo extends Activity
     public function store()
     {
         $actor = $this->actor;
-        $account = Helper::accountFetch($actor);
+        $account = $this->firstOrFetchAccount($actor);
         $obj = $this->object;
 
         if (!$account) {
@@ -28,24 +25,12 @@ class Undo extends Activity
 
         switch ($obj['type']) {
             case ActivityPubActivityInterface::TYPE_FOLLOW:
-                $following = Helper::accountFetch($obj['object']);
+                $following = $this->firstOrFetchAccount($obj['object']);
                 if (!$following) {
                     return;
                 }
 
-                \App\Model\Follow::where('account_id', $account->id)
-                    ->where('target_account_id', $following->id)
-                    ->delete();
-                FollowRequest::where('account_id', $account->id)
-                    ->where('target_account_id', $following->id)
-                    ->delete();
-                Notification::where('target_account_id', $following->id)
-                    ->where('account_id', $account->id)
-                    ->where('notify_type', Notification::NOTIFY_TYPE_FOLLOW)
-                    ->get()
-                    ->each(function ($item) {
-                        $item->delete();
-                    });
+                $this->inboxService->undoFollow($account, $following);
                 break;
 
             case ActivityPubActivityInterface::TYPE_LIKE:
@@ -57,23 +42,13 @@ class Undo extends Activity
                         return;
                     }
                 }
-                $status = Helper::statusFirstOrFetch($objectUri);
+                $status = $this->firstOrFetchStatus($objectUri);
                 if (!$status) {
                     return;
                 }
-                StatusesFave::where('account_id', $account->id)
-                    ->where('status_id', $status->id)
-                    ->forceDelete();
-                Notification::where('account_id', $status->account_id)
-                    ->where('status_id', $status->id)
-                    ->where('notify_type', Notification::NOTIFY_TYPE_FAVOURITE)
-                    ->get()
-                    ->each(function ($item) {
-                        $item->delete();
-                    });
 
-                break;
-            case ActivityPubActivityInterface::TYPE_ACCEPT:
+                $this->inboxService->undoLike($account->id, $status->id);
+
                 break;
 
             case ActivityPubActivityInterface::TYPE_ANNOUNCE:
@@ -94,15 +69,7 @@ class Undo extends Activity
                     return;
                 }
 
-                Status::where('account_id', $account->id)
-                    ->where('reblog_id', $status->id)
-                    ->delete();
-                Notification::where('target_account_id', $status->account_id)
-                    ->where('account_id', $account->id)
-                    ->where('status_id', $status->reblog_id)
-                    ->where('type',Notification::NOTIFY_TYPE_REBLOG)
-                    ->forceDelete();
-                break;
+                $this->inboxService->undoAnnounceStatus($account->id, $status->account_id, $status->id, $status->reblog_id);
         }
     }
 }

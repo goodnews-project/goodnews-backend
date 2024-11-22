@@ -17,10 +17,10 @@ class Create extends Activity
     public function store()
     {
         $activity = $this->object;
-        $account = Helper::accountFetch($this->actor);
+        $account = $this->firstOrFetchAccount($this->actor);
         $accountId = $account->id;
         $url = $this->id;
-        if (Helper::validateLocalUrl($url)) {
+        if ($this->validateLocalUrl($url)) {
             return;
         }
 
@@ -39,11 +39,10 @@ class Create extends Activity
             count($cc) == 0 &&
             parse_url($to[0], PHP_URL_HOST) == env('AP_HOST')
         ) {
-            $actor = Helper::accountFetch($this->actor);
+            $actor = $this->firstOrFetchAccount($this->actor);
             $activity = $this->object;
             $toArr = explode('/', $activity['to'][0]);
-            $account = Account::where('username', end($toArr))->whereNull('domain')
-                ->firstOrFail();
+            $account = $this->inboxService->getLocalAccountByUsername(end($toArr));
 
             $msgText = strip_tags($activity['content']);
 
@@ -52,7 +51,7 @@ class Create extends Activity
                 $msgText = substr($msgText, $len + 1);
             }
 
-            if (Status::where('uri', $activity['id'])->exists()) {
+            if ($this->inboxService->getStatusByUri($activity['id'])) {
                 return;
             }
 
@@ -63,7 +62,7 @@ class Create extends Activity
         }
 
         if ($activity['type'] == 'Note') {
-            $this->createStatus($accountId, $activity);
+            $this->createStatus($activity);
         }
 
     }
@@ -80,7 +79,7 @@ class Create extends Activity
         })->toArray();
 
 
-        $this->createStatus($accountId, $activity, ['poll' => ['options' => $options], 'multiple' => false, 'expires_in' => Carbon::parse($activity['endTime'])->diffInSeconds(Carbon::now())]);
+        $this->createStatus($activity, ['poll' => ['options' => $options], 'multiple' => false, 'expires_in' => Carbon::parse($activity['endTime'])->diffInSeconds(Carbon::now())]);
 
     }
 
@@ -88,7 +87,7 @@ class Create extends Activity
     {
         $account = $to;
         $activity = $this->fetchActivity($this->id);
-        $status = $this->createStatus($actor->id, $activity, ['attachment' => $activity['attachment']]);
+        $status = $this->createStatus($activity, ['attachment' => $activity['attachment']]);
 
         $dm = new DirectMessage;
         $dm->to_id = $account->id;
@@ -104,12 +103,7 @@ class Create extends Activity
         ]);
 
         if ($account->isLocal()) {
-            $notification = new Notification();
-            $notification->account_id = $actor->id;
-            $notification->target_account_id = $account->id;
-            $notification->notify_type = Notification::NOTIFY_TYPE_DM;
-            $notification->status_id = $dm->status_id;
-            $notification->save();
+            $this->inboxService->addNotify($actor->id, $account->id, Notification::NOTIFY_TYPE_DM, $dm->status_id);
         }
 
     }

@@ -327,4 +327,14 @@ class AccountService
             ['id' => 4, 'plan_discount' => 0.7, 'plan_fee' => str_pad($plan_fee4 = $calculatePlanFeeFn(12, 0.7), 18 + strlen($plan_fee4), '0'), 'plan_term' => 12],
         ];
     }
+
+    public function getLocalAccountByUsername($username)
+    {
+        return Account::where('username', $username)->whereNull('domain')->first();
+    }
+
+    public function getAccountByUri($uri)
+    {
+        return Account::where('uri', $uri)->first();
+    }
 }

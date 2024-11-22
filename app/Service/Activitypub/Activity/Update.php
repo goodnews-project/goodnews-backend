@@ -20,10 +20,6 @@ class Update extends Activity
         if (!isset($activity['type'], $activity['id'])) {
             throw new InboxException('type and id is miss');
         }
-
-        if (!Helper::validateUrl($activity['id'])) {
-            throw new InboxException('id is not valid url');
-        }
     }
 
     public function store()

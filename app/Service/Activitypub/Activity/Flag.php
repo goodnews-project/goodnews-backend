@@ -64,18 +64,8 @@ class Flag extends Activity
             return;
         }
 
-        Instance::updateOrCreate(['domain' => parse_url($id, PHP_URL_HOST)]);
-
-        Report::create([
-            'target_account_id' => $targetAccountId,
-            'status_ids' => $objects->toArray(),
-            'rule_ids' => null,
-            'comment' => $content,
-            'meta' => [
-                'actor' => $actor,
-                'object' => $object
-            ],
-            'uri' => $id
-        ]);
+        $this->inboxService->createReport(
+            $targetAccountId, $objects->toArray(), $content, $actor, $object, $id
+        );
     }
 }

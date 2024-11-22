@@ -16,13 +16,13 @@ class Delete extends Activity
     {
         $actor = $this->actor;
         $obj = $this->object;
-        if (is_string($obj) == true && $actor == $obj && Helper::validateUrl($obj)) {
+        if (is_string($obj) == true && $actor == $obj) {
             DeleteRemoteAccount::handle(null);
             return;
         }
 
         $id = $obj['id'];
-        $account = Account::where('uri', $actor)->first();
+        $account = $this->inboxService->getAccountByUri($actor);
         $type = $this->object['type'];
         switch ($type) {
             case ActivityPubActivityInterface::TYPE_PERSON:
