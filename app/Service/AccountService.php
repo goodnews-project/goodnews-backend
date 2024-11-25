@@ -337,4 +337,14 @@ class AccountService
     {
         return Account::where('uri', $uri)->first();
     }
+
+    public function getAccountByDid($did)
+    {
+        return Account::where('did', $did)->first();
+    }
+
+    public function getAccountByHandle($handle)
+    {
+        return Account::where('acct', $handle)->first();
+    }
 }
