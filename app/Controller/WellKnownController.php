@@ -45,4 +45,9 @@ class WellKnownController extends AbstractController
     {
         return $this->response->raw($this->knownService->hostMeta())->withHeader('Content-Type', 'application/xrd+xml');
     }
+
+    public function getDidDoc()
+    {
+        return $this->knownService->getDidDoc();
+    }
 }

@@ -130,4 +130,20 @@ class WellKnownService
                 ->count();
         });
     }
+
+    public function getDidDoc()
+    {
+        return [
+            '@context' => ['https://www.w3.org/ns/did/v1'],
+            'id' => 'did:web:'.env('PDS_DOMAIN'),
+            'alsoKnownAs' => ['at://'.env('PDS_DOMAIN')],
+            'service' => [
+                [
+                    'id' => '#atproto_pds',
+                    'type' => 'AtprotoPersonalDataServer',
+                    'serviceEndpoint' => 'https://'.env('PDS_DOMAIN')
+                ]
+            ]
+        ];
+    }
 }

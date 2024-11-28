@@ -17,6 +17,7 @@ use App\Model\Follow;
 use App\Model\FollowHashtag;
 use App\Model\Hashtag;
 use App\Model\Status;
+use App\Protocol\At\Pds;
 use App\Request\SearchRequest;
 use App\Resource\StatusResource;
 use App\Schema\AccountSchema;
@@ -36,6 +37,9 @@ class IndexController extends AbstractController
 {
     #[Inject]
     protected AccountService $accountService;
+
+    #[Inject]
+    protected Pds $pds;
 
     #[OA\Get(path:'/_api/v1/search',summary:'账户和推文搜索',tags:['首页'], parameters: [
         new OA\Parameter(name: 'q', description: '搜索关键字', in : 'query', required: true, schema: new OA\Schema(type: 'string')),

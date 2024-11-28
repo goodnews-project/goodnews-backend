@@ -94,6 +94,7 @@ Router::addGroup('/.well-known', function () {
     Router::get('/nodeinfo', [WellKnownController::class, 'nodeinfoRel']);
     Router::get('/nodeinfo/2.0', [WellKnownController::class, 'nodeinfo2']);
     Router::get('/host-meta', [WellKnownController::class, 'hostMeta']);
+    Router::get('/did.json', [WellKnownController::class, 'getDidDoc']);
 });
 
 Router::addServer('ws', function () {
