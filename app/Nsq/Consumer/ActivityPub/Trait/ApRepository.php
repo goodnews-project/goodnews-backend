@@ -20,6 +20,7 @@ use App\Service\AttachmentServiceV3;
 use App\Service\DeliveryFailureTracker;
 use App\Service\SettingService;
 use App\Service\UrisService;
+use App\Util\ActivityPub\Helper;
 use App\Util\ActivityPub\HttpSignature;
 use App\Util\Log;
 use Carbon\Carbon;
@@ -432,6 +433,14 @@ trait ApRepository
 
     public function toProxyUrl($inboxUrl, $url, $remoteUrl)
     {
+        if ($remoteUrl
+            && parse_url($url, PHP_URL_HOST) == 'video.twimg.com'
+            && str_contains($url, '.m3u8')
+            && !str_contains($inboxUrl, 'good.news')
+        ) {
+            return $remoteUrl;
+        }
+
         $instance = Instance::where('domain', parse_url($inboxUrl, PHP_URL_HOST))->first();
         if ($instance && $instance->is_proxy && $remoteUrl) {
             return getApHostUrl() . '/proxy?url=' . $remoteUrl;
@@ -442,7 +451,8 @@ trait ApRepository
     public function getAttachments(Status $status, callable $proxyFunc)
     {
         $mediaFunc = function (Attachment $media) use ($proxyFunc) {
-            $item = [
+            return [
+                'url' => $proxyFunc($media->url, $media->remote_url),
                 'type'      => $media->type,
                 'mediaType' => $media->media_type,
                 'name'      => $media->name,
@@ -450,19 +460,12 @@ trait ApRepository
                 'height'    => $media->height,
                 'blurhash'  => $media->blurhash,
                 'file_type' => $media->file_type,
+                'thumbnail_url' => $proxyFunc($media->thumbnail_url, $media->thumbnail_url),
                 'thumbnail_height' => $media->thumbnail_height,
                 'thumbnail_width' => $media->thumbnail_width,
                 'thumbnail_file_size' => $media->thumbnail_file_size,
                 'file_size' => $media->file_size,
             ];
-            if (parse_url($media->url, PHP_URL_HOST) == 'video.twimg.com' && $media->media_type == 'video/mp4') {
-                $item['url'] = $media->remote_url;
-                $item['thumbnail_url'] = $media->remote_url;
-            } else {
-                $item['url'] = $proxyFunc($media->url, $media->remote_url);
-                $item['thumbnail_url'] = $proxyFunc($media->thumbnail_url, $media->thumbnail_url);
-            }
-            return $item;
         };
 
         if ($status->fee > 0 && $status->attachments->isNotEmpty()) {
