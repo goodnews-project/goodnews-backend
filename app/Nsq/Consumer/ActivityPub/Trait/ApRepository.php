@@ -433,11 +433,7 @@ trait ApRepository
 
     public function toProxyUrl($inboxUrl, $url, $remoteUrl)
     {
-        if ($remoteUrl
-            && parse_url($url, PHP_URL_HOST) == 'video.twimg.com'
-            && str_contains($url, '.m3u8')
-            && !str_contains($inboxUrl, 'good.news')
-        ) {
+        if ($this->isReplaceM3u8UrlForGoodNews($url, $remoteUrl, $inboxUrl)) {
             return $remoteUrl;
         }
 
@@ -536,5 +532,13 @@ trait ApRepository
         if ($status->fee > 0) {
             $status->content .= '<br/><p>付费内容，请到源地址解锁查看 <a href="' . $status->permaurl() . '">' . $status->permaurl() . '</a></p>';
         }
+    }
+
+    protected function isReplaceM3u8UrlForGoodNews($url, $remoteUrl, $hostUrl): bool
+    {
+        return $remoteUrl
+            && parse_url($url, PHP_URL_HOST) == 'video.twimg.com'
+            && str_contains($url, '.m3u8')
+            && !str_contains($hostUrl, 'good.news');
     }
 }

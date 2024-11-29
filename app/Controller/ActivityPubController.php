@@ -53,6 +53,9 @@ class ActivityPubController extends AbstractController
         }
 
         $proxyUrlFunc = function ($url, $remoteUrl) {
+            if ($this->isReplaceM3u8UrlForGoodNews($url, $remoteUrl, $this->request->url())) {
+                return $remoteUrl;
+            }
             return toProxyUrl($url, $remoteUrl);
         };
 
