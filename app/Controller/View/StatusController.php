@@ -26,19 +26,21 @@ class StatusController extends AbstractController
     {
         $status = Status::with(['account', 'attachments'])->findOrFail($id);
         $description = mb_substr(strip_tags($status->content), 0, 250);
-        $title = "{$status->account->display_name}:" . mb_substr($description, 0, 100) . '...';
+        $title = mb_substr($description, 0, 100) . '...';
+        $siteName = Setting::whereNull('settingable_id')->where('key', 'site_title')->value('value');
         $meta = [
-            'og:site_name' => Setting::whereNull('settingable_id')->where('key', 'site_title')->value('value'),
+            'og:site_name' => $siteName,
             'og:type' => 'article',
             'og:url' => $this->request->getUri(),
-            'og:title' => $title,
+            'og:title' =>  $status->account->display_name . " (@{$status->account->acct}) on  {$siteName}",
             'og:description' => $description,
         ];
 
         if ($status->attachments->count()) {
             $meta['og:image'] = $status->attachments->first()->url;
-            $meta['twitter:card'] = 'summary_large_image' ;
         }
+
+
         $html = $this->viewService->render($title, $meta);
         return $this->response->html($html);
     }
