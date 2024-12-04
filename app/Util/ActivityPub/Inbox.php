@@ -367,9 +367,6 @@ class Inbox
                 'notify_type' => Notification::NOTIFY_TYPE_REBLOG,
             ]
         );
-
-        $parent->reblog_count = $parent->reblog_count + 1;
-        $parent->save();
     }
 
     public function handleUpdateActivity()

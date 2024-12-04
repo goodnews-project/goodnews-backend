@@ -51,9 +51,6 @@ class ReblogConsumer extends BaseConsumer
             return Result::ACK;
         }
 
-        $parent->reblog_count = $parent->reblog_count + 1;
-        $parent->save();
-
         Notification::firstOrCreate(
             [
                 'target_account_id' => $target->id,

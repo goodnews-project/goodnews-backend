@@ -40,7 +40,7 @@ use function Hyperf\Support\make;
 class Helper {
 
     protected static ValidatorFactoryInterface $validationFactory;
-    protected static string $logId;
+    protected static string $logId = '';
 
     public static function setValidationFactory(ValidatorFactoryInterface $validationFactory)
     {

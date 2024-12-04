@@ -26,11 +26,11 @@ class StatusCreateConsumer extends BaseConsumer
         Websocket::pushStatusToFollower($status);
 
         // 订阅账号加未读数
-        AccountSubscriberLog::where('target_account_id', $status->account_id)->get()->each(function (AccountSubscriberLog $log) {
-            if ($log->state == AccountSubscriberLog::STATE_SUBSCRIBED) {
-                $log->where('id', $log->id)->increment('unread_num');
-            }
-        });
+//        AccountSubscriberLog::where('target_account_id', $status->account_id)->get()->each(function (AccountSubscriberLog $log) {
+//            if ($log->state == AccountSubscriberLog::STATE_SUBSCRIBED) {
+//                $log->where('id', $log->id)->increment('unread_num');
+//            }
+//        });
 
         return Result::ACK;
     }
