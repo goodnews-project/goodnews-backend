@@ -131,8 +131,9 @@ class StatusesController extends AbstractController
         $status = Status::withInfo(Auth::account())->where([
             ['reply_to_id', $statusId],
             ['reply_to_account_id', $account->id],
-            ['scope', Status::SCOPE_PUBLIC]
         ]);
+
+        $status->whereIn('scope', $this->statusesService->getScope(Auth::account(), $account));
 
         if ($parentStatus->is_hidden_reply) {
             $status->where('is_hidden_reply', 1);
