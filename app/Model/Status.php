@@ -230,7 +230,7 @@ class Status extends Model
             'mentions',
             'polls',
             'previewCard',
-            'originStatus:id,content,reblog_id,account_id',
+            'originStatus:id,content,reblog_id,account_id,fave_count,reply_count,reblog_count,view_count',
             'originStatus.account:id,username,display_name,avatar,domain,acct,note,profile_image,url,following_uri,followers_uri,followers_count,following_count',
         ]);
         $withTrashed ? $query->withTrashed() : $query->withoutTrashed();
