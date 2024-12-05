@@ -248,7 +248,7 @@ trait ApRepository
         $parentInbox = [];
         if ($status->reply_to_id && $parent = $status->parent()) {
             $inReplyToUri = $parent->permalink();
-            if ($parent->isRemote()) {
+            if ($parent->account->isRemote()) {
                 $parentInbox[] = $parent->inbox_uri;
             }
         }
@@ -274,6 +274,10 @@ trait ApRepository
         foreach ($audience as $inboxUrl) {
             $url = $inboxUrl;
 
+            if (empty($url)) {
+                continue;
+            }
+
             //check instance
             $instance = Instance::where('domain', parse_url($url, PHP_URL_HOST))->first();
             if (!empty($instance) && $instance->is_disable_sync) {
@@ -290,7 +294,7 @@ trait ApRepository
         }
 
         \Hyperf\Collection\collect($pendingProcess)->chunk(2)->each(function ($items) {
-            Queue::send($items->toArray(), Queue::TOPIC_HTTP_REQUEST);
+            Queue::send($items, Queue::TOPIC_HTTP_REQUEST);
         });
 
         Log::info($consumerName . ' final end');
@@ -361,7 +365,7 @@ trait ApRepository
             });
 
         \Hyperf\Collection\collect($pendingProcess)->chunk(2)->each(function ($items) {
-            Queue::send($items->toArray(), Queue::TOPIC_HTTP_REQUEST);
+            Queue::send($items, Queue::TOPIC_HTTP_REQUEST);
         });
         Log::info($msgTag . ' final end');
         return Result::ACK;
