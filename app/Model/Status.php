@@ -232,6 +232,9 @@ class Status extends Model
             'previewCard',
             'originStatus:id,content,reblog_id,account_id,fave_count,reply_count,reblog_count,view_count',
             'originStatus.account:id,username,display_name,avatar,domain,acct,note,profile_image,url,following_uri,followers_uri,followers_count,following_count',
+            'originStatus.statusesFave',
+            'originStatus.reblog',
+            'originStatus.bookmarked',
         ]);
         $withTrashed ? $query->withTrashed() : $query->withoutTrashed();
         if ($account) {
