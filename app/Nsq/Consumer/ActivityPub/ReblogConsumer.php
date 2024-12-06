@@ -65,7 +65,8 @@ class ReblogConsumer extends BaseConsumer
 
     public function remoteAnnounceDeliver(Status $status, Status $parent)
     {
-        if (!$this->pushActivitypubSwitchOn($status->account, $status) || !$this->pushActivitypubSwitchOn($parent->account, $parent)) {
+
+        if (!$this->pushActivitypubSwitchOn($status->account, $status)) {
             return Result::DROP;
         }
 
@@ -76,6 +77,11 @@ class ReblogConsumer extends BaseConsumer
         })->map(function($item) {
             return $item->account->inbox_uri;
         })->toArray();
+        if (empty($parent->account->inbox_uri)) {
+            return Result::DROP;
+        }
+
+        $audience[] = $parent->account->inbox_uri;
 
         if(empty($audience) || $status->scope != Status::SCOPE_PUBLIC) {
             // Return on profiles with no remote followers
