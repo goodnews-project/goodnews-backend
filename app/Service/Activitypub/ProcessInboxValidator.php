@@ -52,14 +52,12 @@ class ProcessInboxValidator
             '@context' => 'nullable',
             'id' => 'required|url',
             'type' => 'required',
-            'actor' => 'required',
-            'to' => 'required',
             'object' => 'required',
-            'cc' => 'nullable',
+            'actor' => 'required',
         ]);
 		if ($validator->fails()){
 			$errors = json_encode($validator->errors()->getMessages());
-			throw new InboxException("validate body error: {$errors}");
+			throw new InboxException("validate body error: {$errors}, payload:".json_encode($this->payload));
         }	
 	}
 
