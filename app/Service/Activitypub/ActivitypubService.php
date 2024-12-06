@@ -144,7 +144,6 @@ class ActivitypubService
             'id' => $payload['id'],
             'type' => $payload['type'],
             'actor' => $payload['actor'],
-            'to' => $payload['to'],
             'object' => $payload['object'],
         ]);
         Helper::setLogId($logId);

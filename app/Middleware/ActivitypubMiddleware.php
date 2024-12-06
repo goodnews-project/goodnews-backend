@@ -29,7 +29,7 @@ class ActivitypubMiddleware implements MiddlewareInterface
         $response = $handler->handle($request);
 
         $msg = null;
-        if ($body = json_decode($response->getBody()->getContents(), true) != null) {
+        if (($body = json_decode($response->getBody()->getContents(), true)) != null) {
             if (!empty($body['error'])) {
                 $msg = $body['error'];
             }

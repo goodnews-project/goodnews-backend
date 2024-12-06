@@ -62,6 +62,7 @@ class Inbox
     public function handleVerb()
     {
         $verb = (string) $this->payload['type'];
+        var_dump('handleVerb type:'.$verb);
         switch ($verb) {
 
             case ActivityPubActivityInterface::TYPE_CREATE:
