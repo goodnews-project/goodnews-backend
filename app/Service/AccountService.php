@@ -14,6 +14,7 @@ use App\Model\Notification;
 use App\Model\Report;
 use App\Model\User;
 use App\Nsq\Queue;
+use App\Util\ActivityPub\Helper;
 use App\Util\Lexer\Autolink;
 use App\Util\Lexer\Extractor;
 use Carbon\Carbon;
@@ -288,7 +289,8 @@ class AccountService
         $parseNote = Extractor::create($note)->extract();
         $mentions = [];
         foreach ($parseNote['mentions'] as $mention) {
-            $account = WebfingerService::lookup($mention);
+            $mention = str_starts_with($mention, '@') ? substr($mention, 1) : $mention;
+            $account = Account::where('acct', $mention)->first();
             if (empty($account)) {
                 continue;
             }
