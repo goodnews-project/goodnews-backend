@@ -189,7 +189,7 @@ class AccountService
 
     public function unBlockDomain($loginAccountId, $domain)
     {
-        Block::where([
+        AccountInstanceBlock::where([
             ['account_id', $loginAccountId],
             ['domain', $domain]
         ])->delete();

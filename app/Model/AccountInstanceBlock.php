@@ -21,9 +21,9 @@ class AccountInstanceBlock extends Model
     protected ?string $table = 'account_instance_block';
 
     /**
-     * The attributes that are mass assignable.
+     * The attributes that aren't mass assignable.
      */
-    protected array $fillable = [];
+    protected array $guarded = ['id'];
 
     /**
      * The attributes that should be cast to native types.
