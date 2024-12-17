@@ -9,6 +9,7 @@ use App\Model\Concerns\StatusWaitAttachment;
 use App\Model\Scope\StatusWaitAttachmentScope;
 use App\Model\StatusEdit;
 use App\Service\EsService;
+use App\Service\StatusCacheService;
 use App\Service\UnlockLog;
 use App\Service\UrisService;
 use App\Util\Lexer\Autolink;
@@ -230,7 +231,7 @@ class Status extends Model
             'mentions',
             'polls',
             'previewCard',
-            'originStatus:id,content,reblog_id,account_id,fave_count,reply_count,reblog_count,view_count',
+            'originStatus:id,account_id,reblog_id,reply_to_id',
             'originStatus.account:id,username,display_name,avatar,domain,acct,note,profile_image,url,following_uri,followers_uri,followers_count,following_count',
             'originStatus.statusesFave',
             'originStatus.reblog',
@@ -252,6 +253,7 @@ class Status extends Model
             ]);
             $query->whereDoesntHave('filter', fn ($q) => $q->where('user_filter.account_id', $account['id'])->where('filter.act', Filter::ACT_HIDE));
         }
+        $query->select('id', 'account_id', 'reply_to_id', 'reply_to_account_id', 'reblog_id');
     }
 
     public function loadInfo($account = null)
@@ -362,6 +364,8 @@ class Status extends Model
             return;
         }
 
+        (new StatusCacheService())->evictStatusById($this->id);
+
         //        self::getEs()->deleteDocument($this->id);
     }
 
@@ -390,6 +394,8 @@ class Status extends Model
         if (empty($esData)) {
             return;
         }
+
+        (new StatusCacheService())->evictStatusById($this->id);
 //        Log::info(__CLASS__ . ' updated', compact('data', 'esData'));
 
         //        self::getEs()->updateDocument($this->id, $esData);

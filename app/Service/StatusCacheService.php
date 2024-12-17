@@ -14,10 +14,10 @@ class StatusCacheService
         return Status::withTrashed()->findOrFail($id);
     }
 
-    #[CacheEvict(prefix: "status", value: ':#{id}')]
+    #[CacheEvict(prefix: "status", value: '#{id}')]
     public function evictStatusById($id)
     {
-        return true;
+//        return true;
     }
 
     public function getStatusByIds($ids)

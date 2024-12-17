@@ -20,7 +20,9 @@ class StatusResource extends JsonResource
             return [];
         }
         $status = $this->resource;
-        $this->setUnlockAttachmentsByStatus($status);
+        $filledStatus = $this->fillStatusAttr($status);
+        $this->setUnlockAttachmentsByStatus($filledStatus);
+        $this->setIsBlockedInstance($filledStatus);
         return $status->toArray();
     }
 }

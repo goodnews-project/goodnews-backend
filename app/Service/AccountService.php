@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Exception\AppException;
 use App\Model\Account;
+use App\Model\AccountInstanceBlock;
 use App\Model\Block;
 use App\Model\Follow;
 
@@ -22,6 +23,7 @@ use Carbon\Carbon;
 use Hyperf\Di\Annotation\Inject;
 use Hyperf\Redis\Redis;
 use function Hyperf\Config\config;
+use function Hyperf\Support\env;
 use function Hyperf\Support\make;
 use function Hyperf\Translation\trans;
 
@@ -47,18 +49,23 @@ class AccountService
         return $account;
     }
 
-    public function details($acct, $account = null)
+    public function details($acct, $loginAccount = null)
     {
         $query = Account::where('acct', $acct)
             ->withCount(['tweets'])
             ->with('user:id,account_id,role_id');
 
-        if ($account) {
-            $query->with(['follower' => fn($q) => $q->where('account_id', $account['id'])]);
-            $query->with(['subscribed' => fn($q) => $q->where('account_id', $account['id'])->where('expired_at', '>', Carbon::now())]);
+        if ($loginAccount) {
+            $query->with(['follower' => fn($q) => $q->where('account_id', $loginAccount['id'])]);
+//            $query->with(['subscribed' => fn($q) => $q->where('account_id', $loginAccount['id'])->where('expired_at', '>', Carbon::now())]);
         }
 
         $account = $query->firstOrFail();
+        $account->is_blocked_instance = false;
+        if ($loginAccount) {
+            $domain = $account->domain ?: env('AP_HOST');
+            $account->is_blocked_instance = AccountInstanceBlock::where('account_id', $loginAccount['id'])->where('domain', $domain)->exists();
+        }
 
         return compact('account');
     }
@@ -169,6 +176,22 @@ class AccountService
         Block::where([
             ['account_id', $loginAccountId],
             ['target_account_id', $targetAccountId]
+        ])->delete();
+    }
+
+    public function blockDomain($loginAccountId, $domain)
+    {
+        AccountInstanceBlock::updateOrCreate([
+            'account_id'        => $loginAccountId,
+            'domain' => $domain
+        ]);
+    }
+
+    public function unBlockDomain($loginAccountId, $domain)
+    {
+        Block::where([
+            ['account_id', $loginAccountId],
+            ['domain', $domain]
         ])->delete();
     }
 

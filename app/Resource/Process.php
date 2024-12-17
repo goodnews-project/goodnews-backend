@@ -2,12 +2,31 @@
 
 namespace App\Resource;
 
+use App\Model\AccountInstanceBlock;
 use App\Model\Status;
 use App\Service\Auth;
+use App\Service\StatusCacheService;
 use Hyperf\Paginator\LengthAwarePaginator;
+use function Hyperf\Support\env;
 
 trait Process
 {
+    public function fillStatusAttr(Status $status)
+    {
+        $statusCacheService = new StatusCacheService();
+        $statusCache = $statusCacheService->getStatusById($status->id);
+        return $status->fill($statusCache->getAttributes());
+    }
+
+    public function setIsBlockedInstance(Status $status)
+    {
+        $status->is_blocked_instance = false;
+        if ($account = Auth::account()) {
+            $domain = $status->account->domain ?: env('AP_HOST');
+            $status->is_blocked_instance = AccountInstanceBlock::where('account_id', $account['id'])->where('domain', $domain)->exists();
+        }
+    }
+
     public function setUnlockAttachmentsByStatus(Status $status)
     {
         // 付费内容未解锁，也未订阅作者
@@ -25,7 +44,9 @@ trait Process
     public function setUnlockAttachmentsByStatusPaginator(LengthAwarePaginator $lengthAwarePaginator)
     {
         foreach ($lengthAwarePaginator as $item) {
-            $this->setUnlockAttachmentsByStatus($item);
+            $filledStatus = $this->fillStatusAttr($item);
+            $this->setIsBlockedInstance($filledStatus);
+            $this->setUnlockAttachmentsByStatus($filledStatus);
         }
     }
 }

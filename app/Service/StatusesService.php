@@ -26,7 +26,6 @@ use App\Resource\Mastodon\StatusResource;
 use App\Util\Lexer\Extractor;
 use App\Util\Log;
 use Carbon\Carbon;
-use Hyperf\DbConnection\Db;
 use Hyperf\Di\Annotation\Inject;
 use Hyperf\Stringable\Str;
 use Hyperf\Redis\Redis;

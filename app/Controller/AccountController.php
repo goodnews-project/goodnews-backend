@@ -57,7 +57,7 @@ class AccountController extends AbstractController
     #[OA\Get("/_api/v1/account/{acct}", summary: 'account详情', tags: ['account'])]
     #[OA\Response(
         response: 200,
-        description: ''
+        description: '新增is_blocked_instance表示当前登录用户是否屏蔽了该账号所在的实例'
     )]
     public function show(string $acct)
     {
