@@ -11,11 +11,13 @@ use App\{Entity\Contracts\ActivityPubActivityInterface,
     Exception\InboxException,
     Model\Account,
     Model\Attachment,
+    Model\Concerns\StatusWaitAttachment,
     Model\CustomEmoji,
     Model\Hashtag,
     Model\Instance,
     Model\Notification,
     Model\Poll,
+    Model\Scope\StatusWaitAttachmentScope,
     Model\Status,
     Model\StatusesMention,
     Model\StatusHashtag,
@@ -38,6 +40,7 @@ use function Hyperf\Support\env;
 use function Hyperf\Support\make;
 
 class Helper {
+    use StatusWaitAttachment;
 
     protected static ValidatorFactoryInterface $validationFactory;
     protected static string $logId = '';
@@ -277,7 +280,7 @@ class Helper {
             return Status::findOrFail($id);
         }
 
-        $cached = Status::where('uri', $url)->orWhere('url', $url)->first();
+        $cached = Status::withoutGlobalScope(new StatusWaitAttachmentScope())->where('uri', $url)->orWhere('url', $url)->first();
         Log::info(self::$logId.'-statusFirstOrFetch-cached', ['cached' => $cached != null, 'url' => $url]);
         if($cached) {
             Log::info(self::$logId.'-statusFirstOrFetch-cached return');
