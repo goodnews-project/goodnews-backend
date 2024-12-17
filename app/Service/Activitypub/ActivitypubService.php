@@ -4,6 +4,7 @@ namespace App\Service\Activitypub;
 
 use App\Entity\Contracts\ActivityPubActivityInterface;
 use App\Model\Account;
+use App\Model\Instance;
 use App\Model\Relay;
 use App\Service\DeliveryFailureTracker;
 use App\Service\SettingService;
@@ -131,11 +132,21 @@ class ActivitypubService
 
     public function inbox($headers, $payload)
     {
+        $url = $payload['id'] ?? $payload['url'];
+
+        // check instance
+        $instance = Instance::where('domain', parse_url($url, PHP_URL_HOST))->first();
+        if (!empty($instance) && $instance->is_disable_sync) {
+            return;
+        }
+
+        //
+
         if (!$this->checkRelay($headers, $payload)) {
             return;
         }
 
-        if (Helper::getSensitive($payload['object'], $payload['id'] ?? $payload['url']) && !SettingService::receive_remote_sensitive()) {
+        if (Helper::getSensitive($payload['object'], $url) && !SettingService::receive_remote_sensitive()) {
             return;
         }
 
