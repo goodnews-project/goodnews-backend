@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Model;
 
-use App\Nsq\Consumer\LikeConsumer;
-use App\Nsq\Queue;
+
+use App\Service\StatusCacheService;
 use Hyperf\DbConnection\Model\Model;
 
 /**
@@ -66,14 +66,13 @@ class StatusesFave extends Model
     }
     public function created()
     {
-        Status::find($this->status_id)->increment('fave_count');
+        Status::where('id',$this->status_id)->increment('fave_count');
+        (new StatusCacheService())->evictStatusById($this->status_id);
     }
 
     public function deleted()
     {
-        $status = Status::find($this->status_id);
-        if ($status->fave_count > 0) {
-            $status->decrement('fave_count');
-        }
+        Status::where('id',$this->status_id)->where('fave_count', '>', 0)->decrement('fave_count');
+        (new StatusCacheService())->evictStatusById($this->status_id);
     }
 }
