@@ -66,12 +66,14 @@ class StatusesFave extends Model
     }
     public function created()
     {
-        Status::where('id',$this->status_id)->increment('fave_count');
-        $data = $this->toArray();
+        Status::find($this->status_id)->increment('fave_count');
     }
 
     public function deleted()
     {
-        Status::where('id',$this->status_id)->where('fave_count', '>', 0)->decrement('fave_count');
+        $status = Status::find($this->status_id);
+        if ($status->fave_count > 0) {
+            $status->decrement('fave_count');
+        }
     }
 }

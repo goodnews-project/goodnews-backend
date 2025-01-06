@@ -351,6 +351,7 @@ class Status extends Model
         if ($this->reblog_id) {
             Status::where('id', $this->reblog_id)->increment('reblog_count');
         }
+        (new StatusCacheService())->evictStatusById($this->id);
     }
 
     public function deleted()
